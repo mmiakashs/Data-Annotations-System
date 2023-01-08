@@ -1,5 +1,3 @@
-// TODO: Test JSONs
-
 function annotatedObjectToJSON(annotatedObject){
   let output = {};
   output.id = annotatedObject.id;
@@ -13,23 +11,31 @@ function annotatedObjectToJSON(annotatedObject){
   for (let frameNumber = 0; frameNumber < totalFrames; frameNumber++) {
     let annotatedFrame = annotatedObject.get(frameNumber);
     if (annotatedFrame == null) {
-      window.alert('Play the video in full before downloading the XML so that bounding box data is available for all frames.');
-      return;
+      window.alert('Bounding box not found for ' + output.id + ' in frame ' + toString(frameNumber) + '. Play the video in full before downloading the XML so that bounding box data is available for all frames.');
+      return null;
     }
 
     let bbox = annotatedFrame.bbox;
     if (bbox != null) {
+      let isGroundTruth = annotatedFrame.isGroundTruth ? 1 : 0;
       let annotation = {t: frameNumber, x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height, l: isGroundTruth};
       output.annotations.push(annotation);
     }
   }
+  return output;
 }
 
 function generateJSON() {
-  // TODO: Add in transcription and spacial relationship
-  let targetObject = annotatedObjectsTracer.getAnnotatedObjectByID('target');
-  let referenceObject = annotatedObjectsTracer.getAnnotatedObjectByID('reference');
-  let output = {target: annotatedObjectToJSON(targetObject), reference: annotatedObjectToJSON(referenceObject)};
+  let targetObject = annotatedObjectsTracker.getAnnotatedObjectByID('target');
+  let referenceObject = annotatedObjectsTracker.getAnnotatedObjectByID('reference');
+  let output = {};
+  output.target = annotatedObjectToJSON(targetObject);
+  output.reference = annotatedObjectToJSON(referenceObject);
+  if(output.target === null || output.reference === null){
+    return;
+  }
+  output.transcription = transcriptionInput.value;
+  output.spacial_relationship = spacialRelationshipInput.value;
   let outputJSON = JSON.stringify(output);
 
   let writeStream = streamSaver.createWriteStream('output.json').getWriter();
@@ -50,6 +56,12 @@ function importAnnotatedObjectFromJSON(objectJSON){
   annotatedObject.shape = objectJSON.shape;
   annotatedObject.location = objectJSON.location;
   annotatedObject.dom = newBboxElement();
+  if(id == 'target'){
+    annotatedObject.dom.style.border = '2px solid rgba(0, 255, 0, 1)';
+  }
+  else{
+    annotatedObject.dom.style.border = '2px solid rgba(255, 0, 0, 1)';
+  }
 
   interactify(
     annotatedObject.dom,
@@ -60,15 +72,15 @@ function importAnnotatedObjectFromJSON(objectJSON){
   );
 
   let lastFrame = -1;
-  let frames = object.annotations;
+  let frames = objectJSON.annotations;
   for (let i = 0; i < frames.length; i++) {
-    let frames = frames[i]
-    let frameNumber = parseInt(frames.t);
-    let x = parseInt(frames.x);
-    let y = parseInt(frames.y);
-    let w = parseInt(frames.width);
-    let h = parseInt(frames.height);
-    let isGroundThrough = parseInt(frames.l) == 1;
+    let frame = frames[i];
+    let frameNumber = parseInt(frame.t);
+    let x = parseInt(frame.x);
+    let y = parseInt(frame.y);
+    let w = parseInt(frame.width);
+    let h = parseInt(frame.height);
+    let isGroundTruth = parseInt(frame.l) == 1;
 
     if (lastFrame + 1 != frameNumber) {
       let annotatedFrame = new AnnotatedFrame(lastFrame + 1, null, true);
@@ -76,7 +88,7 @@ function importAnnotatedObjectFromJSON(objectJSON){
     }
 
     let bbox = new BoundingBox(x, y, w, h);
-    let annotatedFrame = new AnnotatedFrame(frameNumber, bbox, isGroundThrough);
+    let annotatedFrame = new AnnotatedFrame(frameNumber, bbox, isGroundTruth);
     annotatedObject.add(annotatedFrame);
 
     lastFrame = frameNumber;
@@ -86,10 +98,11 @@ function importAnnotatedObjectFromJSON(objectJSON){
     let annotatedFrame = new AnnotatedFrame(lastFrame + 1, null, true);
     annotatedObject.add(annotatedFrame);
   }
+  addAnnotatedObjectControls(annotatedObject);
+
 }
 
 function importJSON() {
-  // TODO: Add in transcription and spacial relationship
   if (this.files.length != 1) {
     return;
   }
@@ -107,155 +120,135 @@ function importJSON() {
     let json = JSON.parse(e.target.result);
     let targetObject = json.target;
     let referenceObject = json.reference;
-    importAnnotatedObjectFromJSON(target);
-    importAnnotatedObjectFromJSON(reference);
-
+    importAnnotatedObjectFromJSON(targetObject);
+    importAnnotatedObjectFromJSON(referenceObject);
+    transcriptionInput.value = json.transcription;
+    spacialRelationshipInput.value = json.spacial_relationship;
+  
     player.drawFrame(player.currentFrame);
   };
   reader.readAsText(this.files[0]);
 }
 
-function generateXml() {
-    let xml = '<?xml version="1.0" encoding="utf-8"?>\n';
-    xml += '<annotation>\n';
-    xml += '  <folder>not available</folder>\n';
-    xml += '  <filename>not available</filename>\n';
-    xml += '  <source>\n';
-    xml += '    <type>video</type>\n';
-    xml += '    <sourceImage>vatic frames</sourceImage>\n';
-    xml += '    <sourceAnnotation>vatic</sourceAnnotation>\n';
-    xml += '  </source>\n';
-
-    let totalFrames = framesManager.frames.totalFrames();
-    for (let i = 0; i < annotatedObjectsTracker.annotatedObjects.length; i++) {
-      let annotatedObject = annotatedObjectsTracker.annotatedObjects[i];
-
-      xml += '  <object>\n';
-      xml += '    <moving>true</moving>\n';
-      xml += '    <action/>\n';
-      xml += '    <verified>0</verified>\n';
-      xml += '    <id>' + annotatedObject.id + '</id>\n';
-      xml += '    <label>' + annotatedObject.label + '</label>\n';
-      xml += '    <color>' + annotatedObject.color + '</color>\n';
-      xml += '    <shape>' + annotatedObject.shape + '</shape>\n';
-      xml += '    <location>' + annotatedObject.location + '</location>\n';
-      xml += '    <createdFrame>0</createdFrame>\n';
-      xml += '    <startFrame>0</startFrame>\n';
-      xml += '    <endFrame>' + (totalFrames - 1 ) + '</endFrame>\n';
-
-      for (let frameNumber = 0; frameNumber < totalFrames; frameNumber++) {
-        let annotatedFrame = annotatedObject.get(frameNumber);
-        if (annotatedFrame == null) {
-          window.alert('Play the video in full before downloading the XML so that bounding box data is available for all frames.');
-          return;
-        }
-
-        let bbox = annotatedFrame.bbox;
-        if (bbox != null) {
-          let isGroundThrugh = annotatedFrame.isGroundTruth ? 1 : 0;
-
-          xml += '    ';
-          xml += '<polygon>';
-          xml += '<t>' + frameNumber + '</t>';
-          xml += '<pt><x>' + bbox.x + '</x><y>' + bbox.y + '</y><l>' + isGroundThrugh + '</l></pt>';
-          xml += '<pt><x>' + bbox.x + '</x><y>' + (bbox.y + bbox.height) + '</y><l>' + isGroundThrugh + '</l></pt>';
-          xml += '<pt><x>' + (bbox.x + bbox.width) + '</x><y>' + (bbox.y + bbox.height) + '</y><l>' + isGroundThrugh + '</l></pt>';
-          xml += '<pt><x>' + (bbox.x + bbox.width) + '</x><y>' + bbox.y + '</y><l>' + isGroundThrugh + '</l></pt>';
-          xml += '</polygon>\n';
-        }
-      }
-
-      xml += '  </object>\n';
-    }
-
-    xml += '</annotation>\n';
-
-    let writeStream = streamSaver.createWriteStream('output.xml').getWriter();
-    let encoder = new TextEncoder();
-    writeStream.write(encoder.encode(xml));
-    writeStream.close();
+function newBboxElement() {
+  let dom = document.createElement('div');
+  dom.className = 'bbox';
+  doodle.appendChild(dom);
+  return dom;
 }
 
-function importXml() {
-    if (this.files.length != 1) {
-      return;
-    }
+function addAnnotatedObjectControls(annotatedObject) {
+  let div = undefined;
+  if(annotatedObject.controls === undefined){
+    div = $('<div></div>');
+    annotatedObject.controls = div;
+    $('#objects').append(div);
+  }
+  else{
+    div = annotatedObject.controls;
+  }
 
-    var reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target.readyState != 2) {
-        return;
-      }
+  let id = $('<b><label></b>');
+  if(annotatedObject.id == 'target'){
+    id.append('Target object');
+  }
+  else{
+    id.append('Reference object');
+  }
 
-      if (e.target.error) {
-        throw 'file reader error';
-      }
+  let label = $('<div>');
+  label.append('<label>Label:  </label>');;
+  let label_input = $('<input type="text"/>');
+  if (annotatedObject.label) {
+    label_input.val(annotatedObject.label);
+  }
+  label_input.on('change keyup paste mouseup', function() {
+    annotatedObject.label = this.value;
+  });
+  label.append(label_input);
+  label.css({
+    'padding-top': '5px'
+  });
 
-      let xml = $($.parseXML(e.target.result));
-      let objects = xml.find('object');
-      for (let i = 0; i < objects.length; i++) {
-        let object = $(objects[i]);
-        let id = object.find('id').text();
-        let label = object.find('label').text();
-        let color = object.find('color').text();
-        let shape = object.find('shape').text();
-        let location = object.find('location').text();
 
-        // If an annotatedObject with the same id already exists, then delete that before adding this new one.
+  let color = $('<div>');
+  color.append('<label>Color:  </label>');;
+  let color_input = $('<input type="text"/>');
+  if (annotatedObject.color) {
+    color_input.val(annotatedObject.color);
+  }
+  color_input.on('change keyup paste mouseup', function() {
+    annotatedObject.color = this.value;
+  });
+  color.append(color_input);
+  color.css({
+    'padding-top': '5px'
+  });
 
-        let annotatedObject = new AnnotatedObject();
-        annotatedObject.id = id;
-        annotatedObject.label = label;
-        annotatedObject.color = color;
-        annotatedObject.shape = shape;
-        annotatedObject.location = location;
-        annotatedObject.dom = newBboxElement();
-        annotatedObjectsTracker.annotatedObjects.push(annotatedObject);
 
-        interactify(
-          annotatedObject.dom,
-          (x, y, width, height) => {
-            let bbox = new BoundingBox(x, y, width, height);
-            annotatedObject.add(new AnnotatedFrame(player.currentFrame, bbox, true));
-          }
-        );
+  let shape = $('<div>');
+  shape.append('<label>Shape:  </label>');;
+  let shape_input = $('<input type="text"/>');
+  if (annotatedObject.shape) {
+    shape_input.val(annotatedObject.shape);
+  }
+  shape_input.on('change keyup paste mouseup', function() {
+    annotatedObject.shape = this.value;
+  });
+  shape.append(shape_input);
+  shape.css({
+    'padding-top': '5px'
+  });
 
-        addAnnotatedObjectControls(annotatedObject);
 
-        let lastFrame = -1;
-        let polygons = object.find('polygon');
-        for (let j = 0; j < polygons.length; j++) {
-          let polygon = $(polygons[j]);
-          let frameNumber = parseInt(polygon.find('t').text());
-          let pts = polygon.find('pt');
-          let topLeft = $(pts[0]);
-          let bottomRight = $(pts[2]);
-          let isGroundThrough = parseInt(topLeft.find('l').text()) == 1;
-          let x = parseInt(topLeft.find('x').text());
-          let y = parseInt(topLeft.find('y').text());
-          let w = parseInt(bottomRight.find('x').text()) - x;
-          let h = parseInt(bottomRight.find('y').text()) - y;
+  let location = $('<div>');
+  location.append('<label>Location:  </label>');;
+  let location_input = $('<input type="text"/>');
+  if (annotatedObject.location) {
+    location_input.val(annotatedObject.location);
+  }
+  location_input.on('change keyup paste mouseup', function() {
+    annotatedObject.location = this.value;
+  });
+  location.append(location_input);
+  location.css({
+    'padding-top': '5px'
+  });
 
-          if (lastFrame + 1 != frameNumber) {
-            let annotatedFrame = new AnnotatedFrame(lastFrame + 1, null, true);
-            annotatedObject.add(annotatedFrame);
-          }
+  div.css({
+    'border': '1px solid black',
+    'display': 'inline-block',
+    'margin': '5px',
+    'padding': '10px'});
+  div.empty();
+  div.append(id); div.append($('<br />'));
+  div.append(label);
+  div.append(color);
+  div.append(shape);
+  div.append(location);
 
-          let bbox = new BoundingBox(x, y, w, h);
-          let annotatedFrame = new AnnotatedFrame(frameNumber, bbox, isGroundThrough);
-          annotatedObject.add(annotatedFrame);
-
-          lastFrame = frameNumber;
-        }
-
-        if (lastFrame + 1 < framesManager.frames.totalFrames()) {
-          let annotatedFrame = new AnnotatedFrame(lastFrame + 1, null, true);
-          annotatedObject.add(annotatedFrame);
-        }
-      }
-
-      player.drawFrame(player.currentFrame);
-    };
-    reader.readAsText(this.files[0]);
 }
 
+function resetAllAnnotatedObjects() {
+  for (let i = 0; i < annotatedObjectsTracker.annotatedObjects.length; i++) {
+    let annotatedObject = annotatedObjectsTracker.annotatedObjects[i];
+    annotatedObject.controls.remove();
+    $(annotatedObject.dom).remove();
+  }
+  annotatedObjectsTracker.annotatedObjects = [];
+
+  let targetAnnotatedObject = new AnnotatedObject();
+  targetAnnotatedObject.id = 'target';
+  targetAnnotatedObject.dom = newBboxElement();
+  annotatedObjectsTracker.annotatedObjects.push(targetAnnotatedObject);
+  addAnnotatedObjectControls(targetAnnotatedObject);
+
+  let referenceAnnotatedObject = new AnnotatedObject();
+  referenceAnnotatedObject.id = 'reference';
+  referenceAnnotatedObject.dom = newBboxElement();
+  annotatedObjectsTracker.annotatedObjects.push(referenceAnnotatedObject);
+  addAnnotatedObjectControls(referenceAnnotatedObject);
+
+  spacialRelationshipInput.text = "";
+  transcriptionInput.text = "";
+}

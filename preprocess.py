@@ -70,11 +70,12 @@ for filename in filenames:
     print(f"Zip extracted, saved to {zip_filename}")
     print()
 
+    zip_filename = zip_filename_base + ".zip"
     # Save data to json object
     saved_data[filename] = {}
     saved_data[filename]["transcription"] = text
     saved_data[filename]["frames_folder"] = zip_folder
-    saved_data[filename]["frames_zip"] = zip_filename
+    saved_data[filename]["frames_zip_filename"] = zip_filename
 
     # Save every iteration
     json.dump(saved_data, open(SAVE_JSON, "w+"))
