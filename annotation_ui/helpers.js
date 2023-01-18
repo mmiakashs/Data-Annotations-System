@@ -123,11 +123,14 @@ function importJSON() {
 
     let json = JSON.parse(e.target.result);
     let targetObject = json.target;
-    let referenceObject = json.reference;
     importAnnotatedObjectFromJSON(targetObject);
-    importAnnotatedObjectFromJSON(referenceObject);
     transcriptionInput.value = json.transcription;
-    spatialRelationshipInput.value = json.spatial_relationship;
+
+    if('reference' in json){
+      let referenceObject = json.reference;
+      importAnnotatedObjectFromJSON(referenceObject);
+      spatialRelationshipInput.value = json.spatial_relationship;  
+    }
   
     player.drawFrame(player.currentFrame);
   };
