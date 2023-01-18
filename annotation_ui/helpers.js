@@ -37,9 +37,8 @@ function generateJSON() {
     return;
   }
   output.transcription = transcriptionInput.value;
-  if(referenceObjectCheckbox.checked){
-    output.spatial_relationship = spatialRelationshipInput.value;
-  }
+  output.perspective = perspectiveInput.value;
+  output.spatial_relationship = spatialRelationshipInput.value;
   let outputJSON = JSON.stringify(output);
 
   let writeStream = streamSaver.createWriteStream('output.json').getWriter();
@@ -125,13 +124,16 @@ function importJSON() {
     let targetObject = json.target;
     importAnnotatedObjectFromJSON(targetObject);
     transcriptionInput.value = json.transcription;
+    perspectiveInput.value = json.perspective;
+    spatialRelationshipInput.value = json.spatial_relationship;    
 
+    deleteReferenceObject();
     if('reference' in json){
+      createReferenceObject();
       let referenceObject = json.reference;
       importAnnotatedObjectFromJSON(referenceObject);
-      spatialRelationshipInput.value = json.spatial_relationship;  
     }
-  
+
     player.drawFrame(player.currentFrame);
   };
   reader.readAsText(this.files[0]);
@@ -222,6 +224,12 @@ function addAnnotatedObjectControls(annotatedObject) {
     'padding-top': '5px'
   });
 
+  let annotation_button = $('<button>Draw Annotation</button/>');
+  annotation_button.on('click', () => annotateObject(annotatedObject.id));
+  annotation_button.css({
+    'padding-top': '5px'
+  });
+
   div.css({
     'border': '1px solid black',
     'display': 'inline-block',
@@ -233,6 +241,7 @@ function addAnnotatedObjectControls(annotatedObject) {
   div.append(color);
   div.append(shape);
   div.append(location);
+  div.append(annotation_button);
 
 }
 
@@ -252,15 +261,14 @@ function resetAllAnnotatedObjects() {
 
   if(referenceObjectCheckbox.checked){
     createReferenceObject();
-    spatialRelationshipDiv.hidden = false;
   }
   else{
     deleteReferenceObject();
-    spatialRelationshipDiv.hidden = true;
   }
 
   spatialRelationshipInput.text = "";
   transcriptionInput.text = "";
+  perspectiveInput.value = "neutral";
 }
 
 function createReferenceObject() {
@@ -285,4 +293,9 @@ function deleteAnnotatedObject(id) {
       $(annotatedObject.dom).remove();  
     }
   }
+}
+
+function annotateObject(id) {
+  doodle.style.cursor = 'crosshair';
+  annotatedObjectsTracker.currentlyAnnotating = annotatedObjectsTracker.getAnnotatedObjectByID(id);
 }

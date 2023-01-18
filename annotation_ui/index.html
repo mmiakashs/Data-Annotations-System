@@ -145,13 +145,24 @@
         <p><label for="speed">Speed multiplier: </label><input type="text" id="speed" value="1.00" size="4" /></p>
         <p><label for="referenceObjectPresent">Reference object present? </label><input type="checkbox" id="referenceObjectPresent"/></p>
         <div id="objects"></div>
+        <br>
         <div hidden=true id="transcriptionDiv">
           <label style="display: flex"><b>Transcription:  </b></label>
           <textarea rows="5" cols="80" id="transcription"></textarea>
         </div>
-        <div hidden=true id="spatialRelationshipDiv" hidden=true>
-          <label><b>Spatial Relationship:  </b></label>
+        <br>
+        <div hidden=true id="spatialRelationshipDiv">
+          <label for="spatialRelationship"><b>Spatial Relationship:  </b></label>
           <input type="text" id="spatialRelationship"/>
+        </div>
+        <br>
+        <div hidden=true id="perspectiveDiv">
+          <label for="perspectiveInput"><b>Verbal expression perspective:  </b></label>
+          <select name="perspectiveInput" id="perspectiveInput"/>
+            <option value="neutral" selected>Neutral</option>
+            <option value="speaker" selected>Speaker</option>
+            <option value="robot" selected>Robot</option>
+        </select>
         </div>
       </li>
       <li>
@@ -202,6 +213,8 @@
       let referenceObjectCheckbox = document.querySelector("#referenceObjectPresent");
       let spatialRelationshipDiv = document.querySelector('#spatialRelationshipDiv');
       let spatialRelationshipInput = document.querySelector('#spatialRelationship');
+      let perspectiveDiv = document.querySelector('#perspectiveDiv');
+      let perspectiveInput = document.querySelector('#perspectiveInput');
       let transcriptionDiv = document.querySelector('#transcriptionDiv');
       let transcriptionInput = document.querySelector('#transcription');
 
@@ -388,16 +401,10 @@
 
       function handleReferenceObjectCheckboxClick() {
         if(referenceObjectCheckbox.checked){
-          spatialRelationshipDiv.hidden = false;
-          spatialRelationshipInput.hidden = false;
-          spatialRelationshipInput.text = "";
           deleteReferenceObject();
           createReferenceObject();
         }
         else{
-          spatialRelationshipDiv.hidden = true;
-          spatialRelationshipInput.hidden = true;
-          spatialRelationshipInput.text = "";
           deleteReferenceObject();
         }
       }
@@ -438,6 +445,7 @@
         jsonFile.disabled = true;
         generateJSONButton.disabled = true;
         spatialRelationshipDiv.hidden = true;
+        perspectiveDiv.hidden = true;
         transcriptionDiv.hidden = true;
         resetAllAnnotatedObjects();
         slider.reset();
@@ -465,9 +473,8 @@
                 jsonFile.disabled = false;
                 playButton.disabled = false;
                 generateJSONButton.disabled = false;
-                if(referenceObjectCheckbox.checked){
-                  spatialRelationshipDiv.hidden = false;
-                }
+                spatialRelationshipDiv.hidden = false;
+                perspectiveDiv.hidden = false;
                 transcriptionDiv.hidden = false;
               });
             });
@@ -610,12 +617,12 @@
         else{
           if (e.keyCode === 32 && mouseIsOnDoodle) { // space
             player.toggle();
-          } else if(e.keyCode === 84 && mouseIsOnDoodle){ // T
-            doodle.style.cursor = 'crosshair';
-            annotatedObjectsTracker.currentlyAnnotating = annotatedObjectsTracker.getAnnotatedObjectByID('target');
-          } else if(e.keyCode === 82 && mouseIsOnDoodle){ // R
-            doodle.style.cursor = 'crosshair';
-            annotatedObjectsTracker.currentlyAnnotating = annotatedObjectsTracker.getAnnotatedObjectByID('reference');
+          // } else if(e.keyCode === 84 && mouseIsOnDoodle){ // T
+          //   doodle.style.cursor = 'crosshair';
+          //   annotatedObjectsTracker.currentlyAnnotating = annotatedObjectsTracker.getAnnotatedObjectByID('target');
+          // } else if(e.keyCode === 82 && mouseIsOnDoodle){ // R
+          //   doodle.style.cursor = 'crosshair';
+          //   annotatedObjectsTracker.currentlyAnnotating = annotatedObjectsTracker.getAnnotatedObjectByID('reference');
           } else if (e.keyCode === 27) { // escape
             if (tmpAnnotatedObject != null) {
               doodle.removeChild(tmpAnnotatedObject.dom);
