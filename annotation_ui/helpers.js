@@ -30,12 +30,16 @@ function generateJSON() {
   let referenceObject = annotatedObjectsTracker.getAnnotatedObjectByID('reference');
   let output = {};
   output.target = annotatedObjectToJSON(targetObject);
-  output.reference = annotatedObjectToJSON(referenceObject);
+  if(referenceObjectCheckbox.checked){
+    output.reference = annotatedObjectToJSON(referenceObject);
+  }
   if(output.target === null || output.reference === null){
     return;
   }
   output.transcription = transcriptionInput.value;
-  output.spatial_relationship = spatialRelationshipInput.value;
+  if(referenceObjectCheckbox.checked){
+    output.spatial_relationship = spatialRelationshipInput.value;
+  }
   let outputJSON = JSON.stringify(output);
 
   let writeStream = streamSaver.createWriteStream('output.json').getWriter();
