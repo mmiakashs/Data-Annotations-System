@@ -35,7 +35,7 @@ function generateJSON() {
     return;
   }
   output.transcription = transcriptionInput.value;
-  output.spacial_relationship = spacialRelationshipInput.value;
+  output.spatial_relationship = spatialRelationshipInput.value;
   let outputJSON = JSON.stringify(output);
 
   let writeStream = streamSaver.createWriteStream('output.json').getWriter();
@@ -123,7 +123,7 @@ function importJSON() {
     importAnnotatedObjectFromJSON(targetObject);
     importAnnotatedObjectFromJSON(referenceObject);
     transcriptionInput.value = json.transcription;
-    spacialRelationshipInput.value = json.spacial_relationship;
+    spatialRelationshipInput.value = json.spatial_relationship;
   
     player.drawFrame(player.currentFrame);
   };
@@ -243,12 +243,39 @@ function resetAllAnnotatedObjects() {
   annotatedObjectsTracker.annotatedObjects.push(targetAnnotatedObject);
   addAnnotatedObjectControls(targetAnnotatedObject);
 
+  if(referenceObjectCheckbox.checked){
+    createReferenceObject();
+    spatialRelationshipDiv.hidden = false;
+  }
+  else{
+    deleteReferenceObject();
+    spatialRelationshipDiv.hidden = true;
+  }
+
+  spatialRelationshipInput.text = "";
+  transcriptionInput.text = "";
+}
+
+function createReferenceObject() {
+  console.log("CREATING REFERENCE OBJECT");
   let referenceAnnotatedObject = new AnnotatedObject();
   referenceAnnotatedObject.id = 'reference';
   referenceAnnotatedObject.dom = newBboxElement();
   annotatedObjectsTracker.annotatedObjects.push(referenceAnnotatedObject);
   addAnnotatedObjectControls(referenceAnnotatedObject);
+}
 
-  spacialRelationshipInput.text = "";
-  transcriptionInput.text = "";
+function deleteReferenceObject(){
+  deleteAnnotatedObject('reference');
+}
+
+function deleteAnnotatedObject(id) {
+  for (let i = annotatedObjectsTracker.annotatedObjects.length - 1; i >= 0; i--) {
+    let annotatedObject = annotatedObjectsTracker.annotatedObjects[i];
+    if(annotatedObject.id == id){
+      annotatedObjectsTracker.annotatedObjects.splice(i, 1);
+      annotatedObject.controls.remove();
+      $(annotatedObject.dom).remove();  
+    }
+  }
 }

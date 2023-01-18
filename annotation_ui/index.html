@@ -135,7 +135,7 @@
         <p>Manually annotate the frame sequence:</p>
         <p>Each video has two bounding boxes: The target bounding box and the reference bounding box. To create or update the target bounding box, first click 't', and then left click on two locations in the video corresopnding to the corners of the box. For the reference bounding box, click 'r'</p>
         <p>Make sure to make any manual corrections to the transcription of the video.</p>
-        <p>You can also optionally specify a spacial relationship between the target and reference object.</p>
+        <p>You can also optionally specify a spatial relationship between the target and reference object.</p>
         <p>Tip: Use the spacebar to play/pause the video, and the left and right arrows to navigate frame by frame.</p>
         <div id="doodle">
           <canvas id="canvas"></canvas>
@@ -143,14 +143,15 @@
         <p><input type="button" id="play" value="Play" disabled="true" /><input type="button" id="pause" value="Pause" disabled="true" style="display: none;" /></p>
         <div id="slider"></div>
         <p><label for="speed">Speed multiplier: </label><input type="text" id="speed" value="1.00" size="4" /></p>
+        <p><label for="referenceObjectPresent">Reference object present? </label><input type="checkbox" id="referenceObjectPresent"/></p>
         <div id="objects"></div>
-        <div hidden=false id="spacialRelationshipDiv">
-          <label><b>Spacial Relationship:  </b></label>
-          <input type="text" id="spacialRelationship"/>
-        </div>
-        <div hidden=false id="transcriptionDiv">
+        <div hidden=true id="transcriptionDiv">
           <label style="display: flex"><b>Transcription:  </b></label>
           <textarea rows="5" cols="80" id="transcription"></textarea>
+        </div>
+        <div hidden=true id="spatialRelationshipDiv" hidden=true>
+          <label><b>Spatial Relationship:  </b></label>
+          <input type="text" id="spatialRelationship"/>
         </div>
       </li>
       <li>
@@ -198,8 +199,9 @@
       let speedInput = document.querySelector('#speed');
       let sliderElement = document.querySelector('#slider');
       let generateJSONButton = document.querySelector('#generateJSON');
-      let spacialRelationshipDiv = document.querySelector('#spacialRelationshipDiv');
-      let spacialRelationshipInput = document.querySelector('#spacialRelationship');
+      let referenceObjectCheckbox = document.querySelector("#referenceObjectPresent");
+      let spatialRelationshipDiv = document.querySelector('#spatialRelationshipDiv');
+      let spatialRelationshipInput = document.querySelector('#spatialRelationship');
       let transcriptionDiv = document.querySelector('#transcriptionDiv');
       let transcriptionInput = document.querySelector('#transcription');
 
@@ -217,6 +219,8 @@
       playButton.addEventListener('click', playClicked, false);
       pauseButton.addEventListener('click', pauseClicked, false);
       generateJSONButton.addEventListener('click', generateJSON, false);
+
+      referenceObjectCheckbox.onclick = handleReferenceObjectCheckboxClick;
 
       let slider = {
         init: function(min, max, onChange) {
@@ -304,7 +308,7 @@
           playButton.style.display = 'block';
         },
 
-        toogle: function() {
+        toggle: function() {
           if (!this.isPlaying) {
             this.play();
           } else {
@@ -382,6 +386,22 @@
         sliderElement.style.width = img.width + 'px';
       }
 
+      function handleReferenceObjectCheckboxClick() {
+        if(referenceObjectCheckbox.checked){
+          spatialRelationshipDiv.hidden = false;
+          spatialRelationshipInput.hidden = false;
+          spatialRelationshipInput.text = "";
+          deleteReferenceObject();
+          createReferenceObject();
+        }
+        else{
+          spatialRelationshipDiv.hidden = true;
+          spatialRelationshipInput.hidden = true;
+          spatialRelationshipInput.text = "";
+          deleteReferenceObject();
+        }
+      }
+
       function updateTranscriptionMap() {
         if (this.files.length != 1) {
           return;
@@ -417,7 +437,7 @@
         zipFile.disabled = true;
         jsonFile.disabled = true;
         generateJSONButton.disabled = true;
-        spacialRelationshipDiv.hidden = true;
+        spatialRelationshipDiv.hidden = true;
         transcriptionDiv.hidden = true;
         resetAllAnnotatedObjects();
         slider.reset();
@@ -445,7 +465,9 @@
                 jsonFile.disabled = false;
                 playButton.disabled = false;
                 generateJSONButton.disabled = false;
-                spacialRelationshipDiv.hidden = false;
+                if(referenceObjectCheckbox.checked){
+                  spatialRelationshipDiv.hidden = false;
+                }
                 transcriptionDiv.hidden = false;
               });
             });
@@ -587,7 +609,7 @@
         }
         else{
           if (e.keyCode === 32 && mouseIsOnDoodle) { // space
-            player.toogle();
+            player.toggle();
           } else if(e.keyCode === 84 && mouseIsOnDoodle){ // T
             doodle.style.cursor = 'crosshair';
             annotatedObjectsTracker.currentlyAnnotating = annotatedObjectsTracker.getAnnotatedObjectByID('target');
