@@ -30,12 +30,13 @@ function generateJSON() {
   let referenceObject = annotatedObjectsTracker.getAnnotatedObjectByID('reference');
   let output = {};
   output.target = annotatedObjectToJSON(targetObject);
-  if(referenceObjectCheckbox.checked){
-    output.reference = annotatedObjectToJSON(referenceObject);
-  }
-  if(output.target === null || output.reference === null){
-    return;
-  }
+  output.reference = annotatedObjectToJSON(referenceObject);
+  // if(referenceObjectCheckbox.checked){
+  //   output.reference = annotatedObjectToJSON(referenceObject);
+  // }
+  // if(output.target === null || output.reference === null){
+  //   return;
+  // }
   output.transcription = transcriptionInput.value;
   output.perspective = perspectiveInput.value;
   output.spatial_relationship = spatialRelationshipInput.value;
@@ -259,12 +260,13 @@ function resetAllAnnotatedObjects() {
   annotatedObjectsTracker.annotatedObjects.push(targetAnnotatedObject);
   addAnnotatedObjectControls(targetAnnotatedObject);
 
-  if(referenceObjectCheckbox.checked){
-    createReferenceObject();
-  }
-  else{
-    deleteReferenceObject();
-  }
+  createReferenceObject();
+  // if(referenceObjectCheckbox.checked){
+  //   createReferenceObject();
+  // }
+  // else{
+  //   deleteReferenceObject();
+  // }
 
   spatialRelationshipInput.text = "";
   transcriptionInput.text = "";
