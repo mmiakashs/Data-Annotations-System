@@ -3,7 +3,7 @@
 class FramesManager {
   constructor() {
     this.frames = {
-      totalFrames: () => { return 0; }
+      totalFrames: () => { return 0; },
     };
     this.onReset = [];
   }
@@ -24,6 +24,10 @@ function blobToImage(blob) {
       URL.revokeObjectURL(this.src);
     };
     img.src = URL.createObjectURL(blob);
+    // framesManager.displayScale = config.frameDisplayHeight / img.height;
+    // let imgDisplayWidth = framesManager.displayScale * img.width;
+    // img.width = imgDisplayWidth;
+    // img.height = config.frameDisplayHeight;
   });
 }
 

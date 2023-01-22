@@ -130,7 +130,7 @@
         <p>Optional: Load an existing JSON annotation file. This should be used if you want to edit an existing annotation for this video: <input type="file" id="jsonFile" accept=".json" disabled="true" /></p>
       </li>
       <li>
-        <p>Manually annotate the frame sequence.</p>
+        <p>Manually annotate the frame sequence. If the verbal message does not contain a reference object then annotate any nearby object as the reference object</p>
         <div id="doodle">
           <canvas id="canvas"></canvas>
         </div>
@@ -138,8 +138,6 @@
         <div id="slider"></div>
         <p><label for="speed">Speed multiplier: </label><input type="text" id="speed" value="1.00" size="4" /></p>
         <!-- <p><label for="referenceObjectPresent">Reference object present? </label><input type="checkbox" id="referenceObjectPresent"/></p> -->
-        <div id="objects"></div>
-        <br>
         <div hidden=true id="transcriptionDiv">
           <label style="display: flex"><b>Transcription:  </b></label>
           <textarea rows="5" cols="80" id="transcription"></textarea>
@@ -156,8 +154,11 @@
             <option value="neutral" selected>Neutral</option>
             <option value="speaker" selected>Speaker</option>
             <option value="robot" selected>Robot</option>
-        </select>
+          </select>
         </div>
+        <br>
+        <div id="objects"></div>
+        <br>
       </li>
       <li>
         <p><input type="button" id="generateJSON" value="Generate" disabled="true" /> the JSON annotations file.</p>
@@ -189,6 +190,9 @@
         // Format of the extracted frames
         imageMimeType: 'image/jpeg',
         imageExtension: '.jpg',
+
+        // Scaling frames
+        frameDisplayHeight: 500
       };
 
       let doodle = document.querySelector('#doodle');
@@ -385,12 +389,12 @@
         player.pause();
       }
 
-      function initializeCanvasDimensions(img) {
-        doodle.style.width = img.width + 'px';
-        doodle.style.height = img.height + 'px';
-        canvas.width = img.width;
-        canvas.height = img.height;
-        sliderElement.style.width = img.width + 'px';
+      function initializeCanvasDimensions(width, height) {
+        doodle.style.width = width + 'px';
+        doodle.style.height = height + 'px';
+        canvas.width = width;
+        canvas.height = height;
+        sliderElement.style.width = width + 'px';
       }
 
       // function handleReferenceObjectCheckboxClick() {
@@ -451,8 +455,8 @@
           extractionProgressElement.innerHTML = 'Extraction completed. ' + frames.totalFrames() + ' frames captured.';
           if (frames.totalFrames() > 0) {
             frames.getFrame(0).then((blob) => {
-              blobToImage(blob).then((img) => {
-                initializeCanvasDimensions(img);
+              blobToImage(blob, framesManager).then((img) => {
+                initializeCanvasDimensions(img.width, img.height);
                 ctx.drawImage(img, 0, 0);
                 videoDimensionsElement.innerHTML = 'Video dimensions determined: ' + img.width + 'x' + img.height;
 

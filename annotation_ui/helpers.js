@@ -241,9 +241,8 @@ function addAnnotatedObjectControls(annotatedObject) {
   div.append(label);
   div.append(color);
   div.append(shape);
-  div.append(location);
+  div.append(location); div.append($('<br />'));
   div.append(annotation_button);
-
 }
 
 function resetAllAnnotatedObjects() {
