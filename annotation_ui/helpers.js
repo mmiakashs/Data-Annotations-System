@@ -18,7 +18,8 @@ function annotatedObjectToJSON(annotatedObject){
     let bbox = annotatedFrame.bbox;
     if (bbox != null) {
       let isGroundTruth = annotatedFrame.isGroundTruth ? 1 : 0;
-      let annotation = {t: frameNumber, x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height, l: isGroundTruth};
+      let scale = framesManager.displayScale;
+      let annotation = {t: frameNumber, x: bbox.x / scale, y: bbox.y / scale, width: bbox.width / scale, height: bbox.height / scale, l: isGroundTruth};
       output.annotations.push(annotation);
     }
   }
@@ -70,7 +71,8 @@ function importAnnotatedObjectFromJSON(objectJSON){
   interactify(
     annotatedObject.dom,
     (x, y, width, height) => {
-      let bbox = new BoundingBox(x, y, width, height);
+      let scale = framesManager.displayScale;
+      let bbox = new BoundingBox(x * scale, y * scale, width * scale, height * scale);
       annotatedObject.add(new AnnotatedFrame(player.currentFrame, bbox, true));
     }
   );
@@ -273,7 +275,6 @@ function resetAllAnnotatedObjects() {
 }
 
 function createReferenceObject() {
-  console.log("CREATING REFERENCE OBJECT");
   let referenceAnnotatedObject = new AnnotatedObject();
   referenceAnnotatedObject.id = 'reference';
   referenceAnnotatedObject.dom = newBboxElement();

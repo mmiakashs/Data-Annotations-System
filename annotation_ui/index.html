@@ -128,6 +128,7 @@
       </li>
       <li>
         <p>Optional: Load an existing JSON annotation file. This should be used if you want to edit an existing annotation for this video: <input type="file" id="jsonFile" accept=".json" disabled="true" /></p>
+        <p>Note: This step must be done AFTER the frames zip file is uploaded so that the display scale can be properly calibrated.</p>
       </li>
       <li>
         <p>Manually annotate the frame sequence. If the verbal message does not contain a reference object then annotate any nearby object as the reference object</p>
@@ -346,7 +347,7 @@
         drawFrame: function(frameNumber) {
           return new Promise((resolve, _) => {
             annotatedObjectsTracker.getFrameWithObjects(frameNumber).then((frameWithObjects) => {
-              ctx.drawImage(frameWithObjects.img, 0, 0);
+              ctx.drawImage(frameWithObjects.img, 0, 0, frameWithObjects.img.width, frameWithObjects.img.height);
 
               for (let i = 0; i < frameWithObjects.objects.length; i++) {
                 let object = frameWithObjects.objects[i];
@@ -457,7 +458,7 @@
             frames.getFrame(0).then((blob) => {
               blobToImage(blob, framesManager).then((img) => {
                 initializeCanvasDimensions(img.width, img.height);
-                ctx.drawImage(img, 0, 0);
+                ctx.drawImage(img, 0, 0, img.width, img.height);
                 videoDimensionsElement.innerHTML = 'Video dimensions determined: ' + img.width + 'x' + img.height;
 
                 framesManager.set(frames);

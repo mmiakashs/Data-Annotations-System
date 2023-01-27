@@ -5,6 +5,7 @@ class FramesManager {
     this.frames = {
       totalFrames: () => { return 0; },
     };
+    this.displayScale
     this.onReset = [];
   }
 
@@ -16,18 +17,18 @@ class FramesManager {
   }
 }
 
-function blobToImage(blob) {
+function blobToImage(blob, framesManager) {
   return new Promise((result, _) => {
     let img = new Image();
     img.onload = function() {
       result(img);
       URL.revokeObjectURL(this.src);
+      // Scale the image size down
+      framesManager.displayScale = config.frameDisplayHeight / img.height;
+      img.width = framesManager.displayScale * img.width;
+      img.height = config.frameDisplayHeight;
     };
     img.src = URL.createObjectURL(blob);
-    // framesManager.displayScale = config.frameDisplayHeight / img.height;
-    // let imgDisplayWidth = framesManager.displayScale * img.width;
-    // img.width = imgDisplayWidth;
-    // img.height = config.frameDisplayHeight;
   });
 }
 
@@ -337,7 +338,7 @@ class AnnotatedObjectsTracker {
   track(frameNumber) {
     return new Promise((resolve, _) => {
       this.framesManager.frames.getFrame(frameNumber).then((blob) => {
-        blobToImage(blob).then((img) => {
+        blobToImage(blob, this.framesManager).then((img) => {
           let result = [];
           let toCompute = [];
           for (let i = 0; i < this.annotatedObjects.length; i++) {
@@ -394,7 +395,7 @@ class AnnotatedObjectsTracker {
       } else {
         this.opticalFlow.reset();
         this.framesManager.frames.getFrame(frameNumber).then((blob) => {
-          blobToImage(blob).then((img) => {
+          blobToImage(blob, this.framesManager).then((img) => {
             let imageData = this.imageData(img);
             this.opticalFlow.init(imageData);
             this.lastFrame = frameNumber;
@@ -409,7 +410,7 @@ class AnnotatedObjectsTracker {
     let canvas = this.ctx.canvas;
     canvas.width = img.width;
     canvas.height = img.height;
-    this.ctx.drawImage(img, 0, 0);
+    this.ctx.drawImage(img, 0, 0, img.width, img.height);
     return this.ctx.getImageData(0, 0, canvas.width, canvas.height);
   }
 };
