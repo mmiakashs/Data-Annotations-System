@@ -1,0 +1,419 @@
+<!doctype html>
+
+<html lang="en">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <title>Data annotation tool for CRL Research</title>
+    <style>
+      .output { font-family: monospace; font-weight: bold; }
+
+      #doodleEgo {
+        position: relative;
+        width: 0px;
+        height: 0px;
+        z-index: 2;
+      }
+
+      #canvasEgo {
+        z-index: 1;
+      }
+
+      #doodleExo {
+        position: relative;
+        width: 0px;
+        height: 0px;
+        z-index: 2;
+      }
+
+      #canvasExo {
+        z-index: 1;
+      }
+
+      .bbox {
+        border: 1px solid #FF0000;
+        position: absolute;
+        z-index: 3;
+      }
+
+      .handle, .ui-resizable-handle {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 0, 0, .5);
+        background-color: rgba(255, 255, 0, .05);
+        position: absolute;
+      }
+
+      .center-drag {
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        cursor: move;
+      }
+
+      .ui-resizable-n {
+        left: 50%;
+        transform: translate(-50%, -50%);
+        cursor: n-resize;
+      }
+
+      .ui-resizable-s {
+        left: 50%;
+        bottom: 0%;
+        transform: translate(-50%, 50%);
+        cursor: s-resize;
+      }
+
+      .ui-resizable-w {
+        top: 50%;
+        transform: translate(-50%, -50%);
+        cursor: w-resize;
+      }
+
+      .ui-resizable-e {
+        right: 0%;
+        top: 50%;
+        transform: translate(50%, -50%);
+        cursor: e-resize;
+      }
+
+      .ui-widget.ui-widget-content {
+        border: 1px solid #d3d3d3;
+      }
+
+      .ui-state-default {
+        border: 1px solid #d3d3d3;
+        background-color: #e6e6e6;
+      }
+
+      .ui-state-hover, .ui-state-focus {
+        border: 1px solid #999999;
+        background-color: #dadada;
+      }
+
+      .ui-state-active {
+        border: 1px solid #aaaaaa;
+        background-color: #ffffff;
+      }
+
+      .ui-state-disabled {
+        opacity: .35;
+      }
+
+      .ui-corner-all {
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Data annotation tool for CRL Research</h1>
+    <ol>
+      <li>
+        <p>This video annotation tool was developed for CRL research. It has been tested to work successfully in Chrome and Firefox.</p>
+      </li>
+      <li>
+        <p>Select the session to start annotating.</p>
+        <select id="subjectSelect" onclick="setSelectOptions($('#sessionSelect'), subjectSessionSelectMapping[$('#subjectSelect').val()]);">Subject</select>
+        <select id="sessionSelect">Session</select>
+        <button onclick="loadSessionAPIData()">Load data</button>
+      </li>
+      <li>
+        <p>Manually annotate the frame sequence. If the verbal message does not contain a reference object then annotate any nearby object as the reference object</p>
+        <div>
+          <div id="doodleEgo">
+            <canvas id="canvasEgo"></canvas>
+          </div>  
+          <div id="doodleExo">
+            <canvas id="canvasExo"></canvas>
+          </div>  
+        </div>
+        <div hidden=true id="transcriptionDiv">
+          <label style="display: flex"><b>Transcription:  </b></label>
+          <textarea rows="5" cols="80" id="transcription"></textarea>
+        </div>
+        <br>
+        <div hidden=true id="spatialRelationshipDiv">
+          <label for="spatialRelationship"><b>Spatial Relationship:  </b></label>
+          <input type="text" id="spatialRelationship"/>
+        </div>
+        <br>
+        <div hidden=true id="perspectiveDiv">
+          <label for="perspectiveInput"><b>Verbal expression perspective:  </b></label>
+          <select name="perspectiveInput" id="perspectiveInput"/>
+            <option value="neutral" selected>Neutral</option>
+            <option value="speaker" selected>Speaker</option>
+            <option value="robot" selected>Robot</option>
+          </select>
+        </div>
+        <br>
+        <div id="objects"></div>
+        <br>
+      </li>
+      <li>
+        <p><input type="button" id="generateJSON" value="Generate" disabled="true" /> the JSON annotations file.</p>
+      </li>
+    </ol>
+
+    <script type="text/javascript" src="{{ url_for('static', filename= 'dist/compatibility.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename= 'dist/jszip.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename= 'dist/StreamSaver.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename= 'dist/polyfill.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename= 'dist/jsfeat.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename= 'dist/nudged.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename= 'dist/pouchdb.min.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename= 'dist/jquery-1.12.4.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename= 'dist/jquery-ui.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename= 'apiHandler.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename= 'helpers.js') }}"></script>
+    <script type="text/javascript">
+      "use strict";
+
+      let config = {
+        // Should be higher than real FPS to not skip real frames
+        // Hardcoded due to JS limitations
+        fps: 30,
+
+        // Low rate decreases the chance of losing frames with poor browser performances
+        playbackRate: 0.4,
+
+        // Format of the extracted frames
+        imageMimeType: 'image/jpeg',
+        imageExtension: '.jpg',
+
+        // Scaling frames
+        frameDisplayHeight: 500,
+
+        // Custom folder structure
+        interactionFolderName: 'interaction_',
+        egoImageDirectory: '/rgb/ego_',
+        exoImageDirectory: '/rgb/exo_',
+        audioLocation: '/audio.mp3',
+
+        audioMimeType: 'audio/mpeg',
+      };
+
+      let doodleEgo = document.querySelector('#doodleEgo');
+      let doodleExo = document.querySelector('#doodleExo');
+      let canvasEgo = document.querySelector('#canvasEgo');
+      let canvasExo = document.querySelector('#canvasExo');
+      let ctxEgo = canvasEgo.getContext('2d');
+      let ctxExo = canvasExo.getContext('2d');
+      let videoDimensionsElementEgo = document.querySelector('#videoDimensionsEgo');
+      let videoDimensionsElementExo = document.querySelector('#videoDimensionsEgo');
+
+      let egoElements = {
+        'doodle': doodleEgo,
+        'canvas': canvasEgo,
+        'ctx': ctxEgo,
+        'videoDimensionsElement': videoDimensionsElementEgo,
+        imageList: [],
+      };
+
+      let exoElements = {
+        'doodle': doodleExo,
+        'canvas': canvasExo,
+        'ctx': ctxExo,
+        'videoDimensionsElement': videoDimensionsElementExo,
+        imageList: [],
+      }
+
+      // let jsonFile = document.querySelector('#jsonFile');
+
+      let playButton = document.querySelector('#play');
+      let pauseButton = document.querySelector('#pause');
+      let speedInput = document.querySelector('#speed');
+      let generateJSONButton = document.querySelector('#generateJSON');
+      // let referenceObjectCheckbox = document.querySelector("#referenceObjectPresent");
+      let spatialRelationshipDiv = document.querySelector('#spatialRelationshipDiv');
+      let spatialRelationshipInput = document.querySelector('#spatialRelationship');
+      let perspectiveDiv = document.querySelector('#perspectiveDiv');
+      let perspectiveInput = document.querySelector('#perspectiveInput');
+      let transcriptionDiv = document.querySelector('#transcriptionDiv');
+      let transcriptionInput = document.querySelector('#transcription');
+
+      // jsonFile.addEventListener('change', importJSON, false);
+      generateJSONButton.addEventListener('click', generateJSON, false);
+
+      initAPIHandler();
+
+      // referenceObjectCheckbox.onclick = handleReferenceObjectCheckboxClick;
+
+      function initializeCanvasDimensions(doodle, canvas, width, height) {
+        doodle.style.width = width + 'px';
+        doodle.style.height = height + 'px';
+        canvas.width = width;
+        canvas.height = height;
+      }
+
+      // function handleReferenceObjectCheckboxClick() {
+      //   if(referenceObjectCheckbox.checked){
+      //     deleteReferenceObject();
+      //     createReferenceObject();
+      //   }
+      //   else{
+      //     deleteReferenceObject();
+      //   }
+      // }
+
+      function setFrame(blob) {
+        frames.getEgoFrame(0).then((blob) => {
+            blobToImage(blob, framesManager).then((img) => {
+            initializeCanvasDimensions(doodleEgo, canvasEgo, img.width, img.height);
+            ctxEgo.drawImage(img, 0, 0, img.width, img.height);
+            videoDimensionsElementEgo.innerHTML = 'Video dimensions determined: ' + img.width + 'x' + img.height;
+
+            framesManager.set(frames);
+
+            // jsonFile.disabled = false;
+            playButton.disabled = false;
+            generateJSONButton.disabled = false;
+            spatialRelationshipDiv.hidden = false;
+            perspectiveDiv.hidden = false;
+            transcriptionDiv.hidden = false;
+            });
+        });
+
+        spatialRelationshipInput.value = "";
+          
+      }
+
+      function interactify(dom, onChange) {
+        let bbox = $(dom);
+        bbox.addClass('bbox');
+
+        let createHandleDiv = (className) => {
+          let handle = document.createElement('div');
+          handle.className = className;
+          bbox.append(handle);
+          return handle;
+        };
+
+        bbox.resizable({
+          containment: 'parent',
+          handles: {
+            n: createHandleDiv('ui-resizable-handle ui-resizable-n'),
+            s: createHandleDiv('ui-resizable-handle ui-resizable-s'),
+            e: createHandleDiv('ui-resizable-handle ui-resizable-e'),
+            w: createHandleDiv('ui-resizable-handle ui-resizable-w')
+          },
+          stop: (e, ui) => {
+            let position = bbox.position();
+            onChange(Math.round(position.left), Math.round(position.top), Math.round(bbox.width()), Math.round(bbox.height()));
+          }
+        });
+
+        bbox.draggable({
+          containment: 'parent',
+          handle: createHandleDiv('handle center-drag'),
+          stop: (e, ui) => {
+            let position = bbox.position();
+            onChange(Math.round(position.left), Math.round(position.top), Math.round(bbox.width()), Math.round(bbox.height()));
+          }
+        });
+      }
+
+      let mouse = {
+        x: 0,
+        y: 0,
+        startX: 0,
+        startY: 0
+      };
+
+      let tmpAnnotatedObject = null;
+
+      // TODO: Continue using doodleEgo / Exo and canvasEgo / Exo from here!
+
+      doodleEgo.onmousemove = function (e) {
+        let ev = e || window.event;
+        if (ev.pageX) {
+          mouse.x = ev.pageX;
+          mouse.y = ev.pageY;
+        } else if (ev.clientX) {
+          mouse.x = ev.clientX;
+          mouse.y = ev.clientY;
+        }
+        mouse.x -= doodleEgo.offsetLeft;
+        mouse.y -= doodleEgo.offsetTop;
+
+        if (tmpAnnotatedObject !== null) {
+          tmpAnnotatedObject.width = Math.abs(mouse.x - mouse.startX);
+          tmpAnnotatedObject.height = Math.abs(mouse.y - mouse.startY);
+          tmpAnnotatedObject.x = (mouse.x - mouse.startX < 0) ? mouse.x : mouse.startX;
+          tmpAnnotatedObject.y = (mouse.y - mouse.startY < 0) ? mouse.y : mouse.startY;
+
+          tmpAnnotatedObject.dom.style.width = tmpAnnotatedObject.width + 'px';
+          tmpAnnotatedObject.dom.style.height = tmpAnnotatedObject.height + 'px';
+          tmpAnnotatedObject.dom.style.left = tmpAnnotatedObject.x + 'px';
+          tmpAnnotatedObject.dom.style.top = tmpAnnotatedObject.y + 'px';
+        }
+
+        mouseIsOnDoodle = true;
+      }
+
+      doodleEgo.addEventListener("mouseenter", function() {mouseIsOnDoodle = true;}); 
+      doodleEgo.addEventListener("mouseout", function() {mouseIsOnDoodle = false;}); 
+      doodleEgo.onclick = function (e) {
+        if (doodleEgo.style.cursor != 'crosshair') {
+          return;
+        }
+
+        if (tmpAnnotatedObject != null) {
+          if(annotatedObjectsTracker.currentlyAnnotating != null){
+            let annotatedObject = annotatedObjectsTracker.currentlyAnnotating;
+            if(annotatedObject.dom !== null){
+              doodleEgo.removeChild(annotatedObject.dom);
+            }
+            annotatedObject.dom = tmpAnnotatedObject.dom;
+            let bbox = new BoundingBox(tmpAnnotatedObject.x, tmpAnnotatedObject.y, tmpAnnotatedObject.width, tmpAnnotatedObject.height);
+            annotatedObject.add(new AnnotatedFrame(player.currentFrame, bbox, true));
+
+            interactify(
+              annotatedObject.dom,
+              (x, y, width, height) => {
+                let bbox = new BoundingBox(x, y, width, height);
+                annotatedObject.add(new AnnotatedFrame(player.currentFrame, bbox, true));
+              }
+            );
+          }
+          tmpAnnotatedObject = null;
+          doodleEgo.style.cursor = 'default';
+        } else {
+          mouse.startX = mouse.x;
+          mouse.startY = mouse.y;
+
+          let dom = newBboxElement(doodleEgo);
+          dom.style.left = mouse.x + 'px';
+          dom.style.top = mouse.y + 'px';
+          if(annotatedObjectsTracker.currentlyAnnotating.id == 'target'){
+            dom.style.border = '2px solid rgba(0, 255, 0, 1)';
+          }
+          else{
+            dom.style.border = '2px solid rgba(255, 0, 0, 1)';
+          }
+          tmpAnnotatedObject = { dom: dom };
+        }
+      }
+
+      // Keyboard shortcuts
+      window.onkeydown = function(e) {
+        let preventDefault = true;
+
+          if (e.keyCode === 27) { // escape
+          if (tmpAnnotatedObject != null) {
+            doodleEgo.removeChild(tmpAnnotatedObject.dom);
+            tmpAnnotatedObject = null;
+          }
+          annotatedObjectsTracker.currentlyAnnotating = null;
+          doodleEgo.style.cursor = 'default';
+        } else {
+          preventDefault = false;
+        }
+
+        if (preventDefault) {
+          e.preventDefault();
+        }
+      };
+
+    </script>
+  </body>
+</html>
