@@ -54,6 +54,7 @@ class SessionHandler {
         spatialRelationshipDiv.hidden = false;
         perspectiveDiv.hidden = false;
         transcriptionDiv.hidden = false;
+        referenceObjectCheckboxDiv.hidden = false;
 
         spatialRelationshipInput.value = "";
         annotationHandler.resetAllAnnotatedObjects();

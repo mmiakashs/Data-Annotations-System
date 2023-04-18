@@ -53,12 +53,12 @@ class AnnotationHandler {
   
     this.createAnnotatedObject('target');
     this.createAnnotatedObject('reference');
-    // if(referenceObjectCheckbox.checked){
-    //   this.createAnnotatedObject('reference');
-    // }
-    // else{
-    //   this.deleteAnnotatedObject('reference');
-    // }
+    if(referenceObjectCheckbox.checked){
+      this.createAnnotatedObject('reference');
+    }
+    else{
+      this.deleteAnnotatedObject('reference');
+    }
   
     spatialRelationshipInput.text = "";
     transcriptionInput.text = "";
@@ -79,7 +79,11 @@ class AnnotationHandler {
       if(annotatedObject.id == id){
         this.annotatedObjects.splice(i, 1);
         annotatedObject.controls.remove();
-        $(annotatedObject.dom).remove();  
+        Object.values(annotatedObject.doms).forEach(dom => $(dom).remove());
+
+        if(this.currentlyAnnotating !== null && this.currentlyAnnotating.id == annotatedObject.id){
+          this.stopAnnotation();        
+        }
       }
     }
   }
@@ -99,7 +103,33 @@ class AnnotationHandler {
     doodleExo.style.cursor = 'crosshair';
     this.currentlyAnnotating = this.getAnnotatedObjectByID(id);
   }
+
+  stopAnnotation(){
+    if (tmpAnnotatedObject['ego'] != null) {
+      doodleEgo.removeChild(tmpAnnotatedObject['ego'].dom);
+      tmpAnnotatedObject['ego'] = null;
+    }
+    if (tmpAnnotatedObject['exo'] != null) {
+      doodleExo.removeChild(tmpAnnotatedObject['exo'].dom);
+      tmpAnnotatedObject['exo'] = null;
+    }
+
+
+    doodleEgo.style.cursor = 'default';
+    doodleExo.style.cursor = 'default';
+    annotationHandler.currentlyAnnotating = null;
+  }
   
+}
+
+function handleReferenceObjectCheckboxClick() {
+  if(referenceObjectCheckbox.checked){
+    annotationHandler.deleteAnnotatedObject('reference');
+    annotationHandler.createAnnotatedObject('reference');
+  }
+  else{
+    annotationHandler.deleteAnnotatedObject('reference');
+  }
 }
 
 function newBboxElement(doodle) {

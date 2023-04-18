@@ -154,6 +154,7 @@
           </select>
         </div>
         <br>
+        <p hidden=true id="referenceObjectCheckboxDiv"><label for="referenceObjectPresent">Reference object present? </label><input type="checkbox" id="referenceObjectPresent"/></p>
         <div id="objects"></div>
         <br>
       </li>
@@ -215,7 +216,8 @@
       let pauseButton = document.querySelector('#pause');
       let speedInput = document.querySelector('#speed');
       let generateJSONButton = document.querySelector('#generateJSON');
-      // let referenceObjectCheckbox = document.querySelector("#referenceObjectPresent");
+      let referenceObjectCheckbox = document.querySelector("#referenceObjectPresent");
+      let referenceObjectCheckboxDiv = document.querySelector("#referenceObjectCheckboxDiv");
       let spatialRelationshipDiv = document.querySelector('#spatialRelationshipDiv');
       let spatialRelationshipInput = document.querySelector('#spatialRelationship');
       let perspectiveDiv = document.querySelector('#perspectiveDiv');
@@ -230,42 +232,13 @@
       let annotationHandler = new AnnotationHandler();
       initAPIHandler();
 
-      // referenceObjectCheckbox.onclick = handleReferenceObjectCheckboxClick;
+      referenceObjectCheckbox.onclick = handleReferenceObjectCheckboxClick;
 
       function initializeCanvasDimensions(doodle, canvas, width, height) {
         doodle.style.width = width + 'px';
         doodle.style.height = height + 'px';
         canvas.width = width;
         canvas.height = height;
-      }
-
-      // function handleReferenceObjectCheckboxClick() {
-      //   if(referenceObjectCheckbox.checked){
-      //     deleteReferenceObject();
-      //     createReferenceObject();
-      //   }
-      //   else{
-      //     deleteReferenceObject();
-      //   }
-      // }
-
-      function setFrame(blob) {
-        frames.getEgoFrame(0).then((blob) => {
-            blobToImage(blob, framesManager).then((img) => {
-            initializeCanvasDimensions(doodleEgo, canvasEgo, img.width, img.height);
-            ctxEgo.drawImage(img, 0, 0, img.width, img.height);
-
-            framesManager.set(frames);
-
-            // jsonFile.disabled = false;
-            generateJSONButton.disabled = false;
-            spatialRelationshipDiv.hidden = false;
-            perspectiveDiv.hidden = false;
-            transcriptionDiv.hidden = false;
-            });
-        });
-
-        spatialRelationshipInput.value = "";          
       }
 
       function interactify(dom, onChange) {
@@ -391,18 +364,8 @@
       window.onkeydown = function(e) {
         let preventDefault = true;
 
-          if (e.keyCode === 27) { // escape
-          if (tmpAnnotatedObject['ego'] != null) {
-            doodleEgo.removeChild(tmpAnnotatedObject['ego'].dom);
-            tmpAnnotatedObject['ego'] = null;
-          }
-          if (tmpAnnotatedObject['exo'] != null) {
-            doodleExo.removeChild(tmpAnnotatedObject['exo'].dom);
-            tmpAnnotatedObject['exo'] = null;
-          }
-          annotationHandler.currentlyAnnotating = null;
-          doodleEgo.style.cursor = 'default';
-          doodleExo.style.cursor = 'default';
+        if (e.keyCode === 27) { // escape
+          annotationHandler.stopAnnotation();
         } else {
           preventDefault = false;
         }
