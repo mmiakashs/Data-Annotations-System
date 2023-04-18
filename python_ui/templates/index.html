@@ -154,7 +154,7 @@
           </select>
         </div>
         <br>
-        <p hidden=true id="referenceObjectCheckboxDiv"><label for="referenceObjectPresent">Reference object present? </label><input type="checkbox" id="referenceObjectPresent"/></p>
+        <p hidden=true id="referenceObjectCheckboxDiv"><label for="referenceObjectPresent">Reference object present? </label><input type="checkbox" id="referenceObjectPresent" checked="true"/></p>
         <div id="objects"></div>
         <br>
       </li>
@@ -288,77 +288,8 @@
         'exo': null
       }
 
-      // TODO: Continue using doodleEgo / Exo and canvasEgo / Exo from here!
-
       setupDoodle(doodleEgo, 'ego');
       setupDoodle(doodleExo, 'exo');
-
-      // doodleEgo.onmousemove = function (e) {
-      //   let ev = e || window.event;
-      //   if (ev.pageX) {
-      //     mouse.x = ev.pageX;
-      //     mouse.y = ev.pageY;
-      //   } else if (ev.clientX) {
-      //     mouse.x = ev.clientX;
-      //     mouse.y = ev.clientY;
-      //   }
-      //   mouse.x -= doodleEgo.offsetLeft;
-      //   mouse.y -= doodleEgo.offsetTop;
-
-      //   if (tmpAnnotatedObject !== null) {
-      //     tmpAnnotatedObject.width = Math.abs(mouse.x - mouse.startX);
-      //     tmpAnnotatedObject.height = Math.abs(mouse.y - mouse.startY);
-      //     tmpAnnotatedObject.x = (mouse.x - mouse.startX < 0) ? mouse.x : mouse.startX;
-      //     tmpAnnotatedObject.y = (mouse.y - mouse.startY < 0) ? mouse.y : mouse.startY;
-
-      //     tmpAnnotatedObject.dom.style.width = tmpAnnotatedObject.width + 'px';
-      //     tmpAnnotatedObject.dom.style.height = tmpAnnotatedObject.height + 'px';
-      //     tmpAnnotatedObject.dom.style.left = tmpAnnotatedObject.x + 'px';
-      //     tmpAnnotatedObject.dom.style.top = tmpAnnotatedObject.y + 'px';
-      //   }
-      // }
-
-      // doodleEgo.onclick = function (e) {
-      //   if (doodleEgo.style.cursor != 'crosshair') {
-      //     return;
-      //   }
-
-      //   if (tmpAnnotatedObject != null) {
-      //     if(annotationHandler.currentlyAnnotating != null){
-      //       let annotatedObject = annotationHandler.currentlyAnnotating;
-      //       if(annotatedObject.doms['ego'] !== undefined){
-      //         doodleEgo.removeChild(annotatedObject.doms['ego']);
-      //       }
-      //       annotatedObject.doms['ego'] = tmpAnnotatedObject.dom;
-      //       let bbox = new BoundingBox(tmpAnnotatedObject.x, tmpAnnotatedObject.y, tmpAnnotatedObject.width, tmpAnnotatedObject.height);
-      //       annotatedObject.bboxs['ego'] = bbox;
-
-      //       interactify(
-      //         annotatedObject.dom,
-      //         (x, y, width, height) => {
-      //           let bbox = new BoundingBox(x, y, width, height);
-      //           annotatedObject.bboxs['ego'] = bbox;
-      //         }
-      //       );
-      //     }
-      //     tmpAnnotatedObject = null;
-      //     doodleEgo.style.cursor = 'default';
-      //   } else {
-      //     mouse.startX = mouse.x;
-      //     mouse.startY = mouse.y;
-
-      //     let dom = newBboxElement(doodleEgo);
-      //     dom.style.left = mouse.x + 'px';
-      //     dom.style.top = mouse.y + 'px';
-      //     if(annotationHandler.currentlyAnnotating.id == 'target'){
-      //       dom.style.border = '2px solid rgba(0, 255, 0, 1)';
-      //     }
-      //     else{
-      //       dom.style.border = '2px solid rgba(255, 0, 0, 1)';
-      //     }
-      //     tmpAnnotatedObject = { dom: dom };
-      //   }
-      // }
 
       // Keyboard shortcuts
       window.onkeydown = function(e) {

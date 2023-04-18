@@ -1,18 +1,25 @@
 import os
+import json
 from PIL import Image
 from flask import Flask, render_template, jsonify, abort
+
+DATA_FOLDER = "static/data/"
+TRANSCRIPTION_FILE = "../transcriptions.json"
 
 app = Flask(__name__)
 
 def calculate_mapping():
     mapping = {}
-    data_folder = "static/data/"
-    subject_foldernames = os.listdir(data_folder)
+    transcriptions = {}
+    if TRANSCRIPTION_FILE is not None:
+        transcriptions = json.load(open(TRANSCRIPTION_FILE))
+
+    subject_foldernames = os.listdir(DATA_FOLDER)
     for subject_foldername in subject_foldernames:
         if not subject_foldername.startswith('subject_') or not subject_foldername[8:].isdecimal():
             continue
         subject = int(subject_foldername[8:])
-        subject_folder = os.path.join(data_folder, subject_foldername) + "/"
+        subject_folder = os.path.join(DATA_FOLDER, subject_foldername) + "/"
 
         mapping[subject] = {}
 
@@ -45,6 +52,12 @@ def calculate_mapping():
                     ego_width, ego_height = im.size
                     im = Image.open(full_exo_file)
                     exo_width, exo_height = im.size
+
+                    transcription = ""
+                    subject_str, session_str, interaction_str = str(subject), str(session), str(interaction)
+                    if subject_str in transcriptions and session_str in transcriptions[subject_str] and interaction_str in transcriptions[subject_str][session_str]:
+                        transcription = transcriptions[subject_str][session_str][interaction_str]
+
                     frames.append({
                         'interaction': interaction, 
                         'img_idx': img_idx,
@@ -54,7 +67,8 @@ def calculate_mapping():
                         'exo_filepath': full_exo_file,
                         'exo_width': exo_width,
                         'exo_height': exo_height,
-                        'audio_filepath': audio_file
+                        'audio_filepath': audio_file,
+                        'transcription': transcription,
                     })
                     img_idx += 1
                     ego_file = "ego_{}.jpg".format(img_idx)

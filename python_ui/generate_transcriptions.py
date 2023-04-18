@@ -51,7 +51,7 @@ for subject_foldername in subject_foldernames:
 
             print("Generating transcription for subject {}, session {}, interaction {}".format(subject, session, interaction))
             result = model.transcribe(audio_filepath, fp16=USING_CUDA)
-            text = result["text"]
+            text = result["text"].strip()
             print("Text:", text)
             transcription_mapping[subject][session][interaction] = text
             json.dump(transcription_mapping, open(OUTPUT_JSON_FILENAME, "w+"))

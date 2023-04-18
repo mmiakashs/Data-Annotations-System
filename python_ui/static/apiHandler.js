@@ -1,6 +1,16 @@
 var subjectSessionSelectMapping = {};
 var subjectSessionNumFramesMapping = {};
 
+function setSelectOptions(selectQuery, optionList){
+    selectQuery.find('option').remove().end();
+    $.each(optionList, function (i, item) {
+        selectQuery.append($('<option>', { 
+            value: item.value,
+            text : item.text 
+        }));
+    });
+}
+
 function refreshSelectOptions(){
     $.ajax({
         url: "/get_mapping",

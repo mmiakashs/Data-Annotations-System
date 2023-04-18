@@ -24,7 +24,6 @@ class SessionHandler {
     addFrame(idx, frame) {
         this.frames[idx] = frame;
         if(this.isReady()){
-            console.log(this);
             this.setCanvasFrame(this.currentFrame);
         }
     }
@@ -40,14 +39,7 @@ class SessionHandler {
         displayScale = getDisplayScale(frame.exo_height);
         drawImage(frame.exo_filepath, displayScale * frame.exo_width, config.frameDisplayHeight, doodleExo, canvasExo, ctxExo);
 
-        // // Set the ego image
-        // let displayScale = getDisplayScale(frame.ego_width);
-        // drawImage(frame.ego_filepath, config.frameDisplayWidth, displayScale * frame.ego_height, doodleEgo, canvasEgo, ctxEgo);
-        
-        // // Set the exo image
-        // displayScale = getDisplayScale(frame.exo_width);
-        // drawImage(frame.exo_filepath, config.frameDisplayWidth, displayScale * frame.exo_height, doodleExo, canvasExo, ctxExo);
-
+        transcriptionInput.value = frame.transcription;
 
         // jsonFile.disabled = false;
         generateJSONButton.disabled = false;
@@ -93,8 +85,6 @@ class SessionHandler {
 
 function getDisplayScale(original_height){
     return config.frameDisplayHeight / original_height;
-// function getDisplayScale(original_width){
-//     return config.frameDisplayWidth / original_width;
 }
 
 function drawImage(filepath, img_width, img_height, doodle, canvas, ctx){
@@ -107,14 +97,4 @@ function drawImage(filepath, img_width, img_height, doodle, canvas, ctx){
         initializeCanvasDimensions(doodle, canvas, img.width, img.height);
         ctx.drawImage(img, 0, 0, img.width, img.height);
     }
-}
-
-function setSelectOptions(selectQuery, optionList){
-    selectQuery.find('option').remove().end();
-    $.each(optionList, function (i, item) {
-        selectQuery.append($('<option>', { 
-            value: item.value,
-            text : item.text 
-        }));
-    });
 }
