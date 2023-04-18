@@ -14,13 +14,24 @@ class BoundingBox {
 class AnnotatedObject {
   constructor() {
     this.id = undefined;
-    this.frame = undefined;
     this.label = undefined;
     this.color = undefined;
     this.shape = undefined;
     this.location = undefined;
+    this.controls = undefined;
     this.doms = {};
     this.bboxs = {};
+  }
+
+  loadDataFromAnnotatedObject(obj){
+    this.label = obj.label;
+    this.color = obj.color;
+    this.shape = obj.shape;
+    this.location = obj.location;
+    this.doms = obj.doms;
+    this.bboxs = obj.bboxs;
+
+    addAnnotatedObjectControls(annotationHandler, this);
   }
 }
 
@@ -31,13 +42,34 @@ class AnnotationHandler {
     this.currentlyAnnotating = null;
   }
 
+  getCurrentAnnotationKey(){
+    return dataHandler.subject + ";" + dataHandler.session + ";" + dataHandler.currentFrame;
+  }
+
   saveObjectsToAnnotationHistory() {
-    let frame = dataHandler.getCurrentFrame();
-    let key = [frame.subject, frame.session, frame.currentFrame];
-    this.annotationHistory[key] = {};
+    console.log("Saving");
+    let key = this.getCurrentAnnotationKey();
+    this.annotationHistory[key] = [];
     for (let i = 0; i < this.annotatedObjects.length; i++) {
       let annotatedObject = this.annotatedObjects[i];
-      this.annotationHistory[key][annotatedObject.id] = annotatedObject.doms;
+      this.annotationHistory[key].push(annotatedObject);
+    }
+  }
+
+  loadSavedAnnotations() {
+    console.log("Loading");
+    let key = this.getCurrentAnnotationKey();
+    if(key in this.annotationHistory){
+      for(let savedObj of this.annotationHistory[key]){
+        let currentObj = this.getAnnotatedObjectByID(savedObj.id);
+        console.log(currentObj);
+        if(currentObj !== null){
+          currentObj.loadDataFromAnnotatedObject(savedObj);
+        }
+        else{
+          this.annotatedObjects.push(this.annotationHistory[key][savedObj]);
+        }
+      }
     }
   }
 

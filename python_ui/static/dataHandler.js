@@ -24,12 +24,12 @@ class DataHandler {
     addFrame(idx, frame) {
         this.frames[idx] = frame;
         if(this.isReady()){
-            this.setCanvasFrame(this.currentFrame);
+            this.drawCurrentFrame();
         }
     }
 
-    setCanvasFrame(idx){
-        let frame = this.frames[idx];
+    drawCurrentFrame(){
+        let frame = this.frames[this.currentFrame];
 
         // Set the ego image
         let displayScale = getDisplayScale(frame.ego_height);
@@ -39,6 +39,7 @@ class DataHandler {
         displayScale = getDisplayScale(frame.exo_height);
         drawImage(frame.exo_filepath, displayScale * frame.exo_width, config.frameDisplayHeight, doodleExo, canvasExo, ctxExo);
 
+        frameInfoLabel.innerHTML = "<b>Currently Annotating Frame " + (this.currentFrame + 1) + " / " + this.numFrames + "</b>";
         transcriptionInput.value = frame.transcription;
         audioSource.src = frame.audio_filepath;
         audioElement.load();
@@ -49,9 +50,11 @@ class DataHandler {
         perspectiveDiv.hidden = false;
         transcriptionDiv.hidden = false;
         referenceObjectCheckboxDiv.hidden = false;
+        frameInfoDiv.hidden = false;
 
         spatialRelationshipInput.value = "";
         annotationHandler.resetAllAnnotatedObjects();
+        annotationHandler.loadSavedAnnotations();
     }
 
     isReady() {
@@ -69,7 +72,9 @@ class DataHandler {
 
     moveToNextFrame() {
         if(this.currentFrame < this.numFrames - 1){
+            annotationHandler.saveObjectsToAnnotationHistory();
             this.currentFrame++;
+            this.drawCurrentFrame();
             return true;
         }
         return false;
@@ -77,7 +82,9 @@ class DataHandler {
 
     moveToPrevFrame() {
         if(this.currentFrame > 0){
+            annotationHandler.saveObjectsToAnnotationHistory();
             this.currentFrame--;
+            this.drawCurrentFrame();
             return true;
         }
         return false;

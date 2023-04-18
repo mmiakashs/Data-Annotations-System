@@ -161,6 +161,11 @@
         <p hidden=true id="referenceObjectCheckboxDiv"><label for="referenceObjectPresent">Reference object present? </label><input type="checkbox" id="referenceObjectPresent" checked="true"/></p>
         <div id="objects"></div>
         <br>
+        <div hidden=true id="frameInfoDiv">
+          <label for="prevFrame" id="frameInfoLabel"></label>
+          <button id="prevFrame">Go To Previous Frame</button>
+          <button id="nextFrame">Go To Next Frame</button>
+        </div>
       </li>
       <li>
         <p><input type="button" id="generateJSON" value="Generate" disabled="true" /> the JSON annotations file.</p>
@@ -230,6 +235,9 @@
       let transcriptionInput = document.querySelector('#transcription');
       let audioSource = document.querySelector("#audioSource");
       let audioElement = document.querySelector("#audioElement");
+      let frameInfoLabel = document.querySelector("#frameInfoLabel");
+      let prevFrameButton = document.querySelector("#prevFrame");
+      let nextFrameButton = document.querySelector("#nextFrame");
 
       // jsonFile.addEventListener('change', importJSON, false);
       generateJSONButton.addEventListener('click', generateJSON, false);
@@ -239,6 +247,8 @@
       initAPIHandler();
 
       referenceObjectCheckbox.onclick = handleReferenceObjectCheckboxClick;
+      prevFrameButton.onclick = () => dataHandler.moveToPrevFrame();
+      nextFrameButton.onclick = () => dataHandler.moveToNextFrame();
 
       function initializeCanvasDimensions(doodle, canvas, width, height) {
         doodle.style.width = width + 'px';
