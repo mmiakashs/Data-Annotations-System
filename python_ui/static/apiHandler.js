@@ -60,14 +60,14 @@ function loadSessionAPIData(){
 
     let numFrames = subjectSessionNumFramesMapping[subject][session];
     let baseURL = "/get_frame/" + subject + "/" + session + "/";
-    sessionHandler.clear();
-    sessionHandler.loadNewSession(subject, session, numFrames);
+    dataHandler.clear();
+    dataHandler.loadNewSession(subject, session, numFrames);
     for(let i = 0; i < numFrames; i++){
         let url = baseURL + i;
         $.ajax({
             url,
             success: function( result ) {
-                sessionHandler.addFrame(i, result);
+                dataHandler.addFrame(i, result);
             }
         });    
     }

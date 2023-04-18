@@ -32,7 +32,7 @@ class AnnotationHandler {
   }
 
   saveObjectsToAnnotationHistory() {
-    let frame = sessionHandler.getCurrentFrame();
+    let frame = dataHandler.getCurrentFrame();
     let key = [frame.subject, frame.session, frame.currentFrame];
     this.annotationHistory[key] = {};
     for (let i = 0; i < this.annotatedObjects.length; i++) {
@@ -52,7 +52,6 @@ class AnnotationHandler {
     this.annotatedObjects = [];
   
     this.createAnnotatedObject('target');
-    this.createAnnotatedObject('reference');
     if(referenceObjectCheckbox.checked){
       this.createAnnotatedObject('reference');
     }

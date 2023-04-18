@@ -1,4 +1,4 @@
-class SessionHandler {
+class DataHandler {
     constructor() {
         this.clear();
     }

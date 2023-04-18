@@ -177,8 +177,8 @@
     <script type="text/javascript" src="{{ url_for('static', filename= 'dist/jquery-1.12.4.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename= 'dist/jquery-ui.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename= 'apiHandler.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename= 'dataHandler.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename= 'annotationHelpers.js') }}"></script>
-    <script type="text/javascript" src="{{ url_for('static', filename= 'helpers.js') }}"></script>
     <script type="text/javascript">
       "use strict";
 
@@ -234,7 +234,7 @@
       // jsonFile.addEventListener('change', importJSON, false);
       generateJSONButton.addEventListener('click', generateJSON, false);
 
-      let sessionHandler = new SessionHandler();
+      let dataHandler = new DataHandler();
       let annotationHandler = new AnnotationHandler();
       initAPIHandler();
 
