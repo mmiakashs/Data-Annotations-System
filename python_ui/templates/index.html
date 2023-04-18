@@ -138,6 +138,10 @@
         <div hidden=true id="transcriptionDiv">
           <label style="display: flex"><b>Transcription:  </b></label>
           <textarea rows="5" cols="80" id="transcription"></textarea>
+          <audio controls id="audioElement">
+            <source type="audio/mpeg" id="audioSource">
+          Your browser does not support the audio element.
+          </audio>          
         </div>
         <br>
         <div hidden=true id="spatialRelationshipDiv">
@@ -224,6 +228,8 @@
       let perspectiveInput = document.querySelector('#perspectiveInput');
       let transcriptionDiv = document.querySelector('#transcriptionDiv');
       let transcriptionInput = document.querySelector('#transcription');
+      let audioSource = document.querySelector("#audioSource");
+      let audioElement = document.querySelector("#audioElement");
 
       // jsonFile.addEventListener('change', importJSON, false);
       generateJSONButton.addEventListener('click', generateJSON, false);

@@ -40,6 +40,8 @@ class SessionHandler {
         drawImage(frame.exo_filepath, displayScale * frame.exo_width, config.frameDisplayHeight, doodleExo, canvasExo, ctxExo);
 
         transcriptionInput.value = frame.transcription;
+        audioSource.src = frame.audio_filepath;
+        audioElement.load();
 
         // jsonFile.disabled = false;
         generateJSONButton.disabled = false;
