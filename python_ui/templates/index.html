@@ -7,11 +7,17 @@
     <style>
       .output { font-family: monospace; font-weight: bold; }
 
+      #doodleContainer {
+        width: 100%;
+        display: table-row;
+      }
+
       #doodleEgo {
         position: relative;
         width: 0px;
         height: 0px;
         z-index: 2;
+        display: table-cell;
       }
 
       #canvasEgo {
@@ -23,6 +29,8 @@
         width: 0px;
         height: 0px;
         z-index: 2;
+        display: table-cell;
+        padding-left: 10px;
       }
 
       #canvasExo {
@@ -119,7 +127,7 @@
       </li>
       <li>
         <p>Manually annotate the frame sequence. If the verbal message does not contain a reference object then annotate any nearby object as the reference object</p>
-        <div>
+        <div id="doodleContainer">
           <div id="doodleEgo">
             <canvas id="canvasEgo"></canvas>
           </div>  
@@ -164,6 +172,7 @@
     <script type="text/javascript" src="{{ url_for('static', filename= 'dist/jquery-1.12.4.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename= 'dist/jquery-ui.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename= 'apiHandler.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename= 'annotationHelpers.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename= 'helpers.js') }}"></script>
     <script type="text/javascript">
       "use strict";
@@ -182,6 +191,7 @@
 
         // Scaling frames
         frameDisplayHeight: 500,
+        // frameDisplayWidth: 800,
 
         // Custom folder structure
         interactionFolderName: 'interaction_',
@@ -198,24 +208,6 @@
       let canvasExo = document.querySelector('#canvasExo');
       let ctxEgo = canvasEgo.getContext('2d');
       let ctxExo = canvasExo.getContext('2d');
-      let videoDimensionsElementEgo = document.querySelector('#videoDimensionsEgo');
-      let videoDimensionsElementExo = document.querySelector('#videoDimensionsEgo');
-
-      let egoElements = {
-        'doodle': doodleEgo,
-        'canvas': canvasEgo,
-        'ctx': ctxEgo,
-        'videoDimensionsElement': videoDimensionsElementEgo,
-        imageList: [],
-      };
-
-      let exoElements = {
-        'doodle': doodleExo,
-        'canvas': canvasExo,
-        'ctx': ctxExo,
-        'videoDimensionsElement': videoDimensionsElementExo,
-        imageList: [],
-      }
 
       // let jsonFile = document.querySelector('#jsonFile');
 
@@ -234,6 +226,8 @@
       // jsonFile.addEventListener('change', importJSON, false);
       generateJSONButton.addEventListener('click', generateJSON, false);
 
+      let sessionHandler = new SessionHandler();
+      let annotationHandler = new AnnotationHandler();
       initAPIHandler();
 
       // referenceObjectCheckbox.onclick = handleReferenceObjectCheckboxClick;
@@ -260,12 +254,10 @@
             blobToImage(blob, framesManager).then((img) => {
             initializeCanvasDimensions(doodleEgo, canvasEgo, img.width, img.height);
             ctxEgo.drawImage(img, 0, 0, img.width, img.height);
-            videoDimensionsElementEgo.innerHTML = 'Video dimensions determined: ' + img.width + 'x' + img.height;
 
             framesManager.set(frames);
 
             // jsonFile.disabled = false;
-            playButton.disabled = false;
             generateJSONButton.disabled = false;
             spatialRelationshipDiv.hidden = false;
             perspectiveDiv.hidden = false;
@@ -273,8 +265,7 @@
             });
         });
 
-        spatialRelationshipInput.value = "";
-          
+        spatialRelationshipInput.value = "";          
       }
 
       function interactify(dom, onChange) {
@@ -319,92 +310,99 @@
         startY: 0
       };
 
-      let tmpAnnotatedObject = null;
+      let tmpAnnotatedObject = {
+        'ego': null,
+        'exo': null
+      }
 
       // TODO: Continue using doodleEgo / Exo and canvasEgo / Exo from here!
 
-      doodleEgo.onmousemove = function (e) {
-        let ev = e || window.event;
-        if (ev.pageX) {
-          mouse.x = ev.pageX;
-          mouse.y = ev.pageY;
-        } else if (ev.clientX) {
-          mouse.x = ev.clientX;
-          mouse.y = ev.clientY;
-        }
-        mouse.x -= doodleEgo.offsetLeft;
-        mouse.y -= doodleEgo.offsetTop;
+      setupDoodle(doodleEgo, 'ego');
+      setupDoodle(doodleExo, 'exo');
 
-        if (tmpAnnotatedObject !== null) {
-          tmpAnnotatedObject.width = Math.abs(mouse.x - mouse.startX);
-          tmpAnnotatedObject.height = Math.abs(mouse.y - mouse.startY);
-          tmpAnnotatedObject.x = (mouse.x - mouse.startX < 0) ? mouse.x : mouse.startX;
-          tmpAnnotatedObject.y = (mouse.y - mouse.startY < 0) ? mouse.y : mouse.startY;
+      // doodleEgo.onmousemove = function (e) {
+      //   let ev = e || window.event;
+      //   if (ev.pageX) {
+      //     mouse.x = ev.pageX;
+      //     mouse.y = ev.pageY;
+      //   } else if (ev.clientX) {
+      //     mouse.x = ev.clientX;
+      //     mouse.y = ev.clientY;
+      //   }
+      //   mouse.x -= doodleEgo.offsetLeft;
+      //   mouse.y -= doodleEgo.offsetTop;
 
-          tmpAnnotatedObject.dom.style.width = tmpAnnotatedObject.width + 'px';
-          tmpAnnotatedObject.dom.style.height = tmpAnnotatedObject.height + 'px';
-          tmpAnnotatedObject.dom.style.left = tmpAnnotatedObject.x + 'px';
-          tmpAnnotatedObject.dom.style.top = tmpAnnotatedObject.y + 'px';
-        }
+      //   if (tmpAnnotatedObject !== null) {
+      //     tmpAnnotatedObject.width = Math.abs(mouse.x - mouse.startX);
+      //     tmpAnnotatedObject.height = Math.abs(mouse.y - mouse.startY);
+      //     tmpAnnotatedObject.x = (mouse.x - mouse.startX < 0) ? mouse.x : mouse.startX;
+      //     tmpAnnotatedObject.y = (mouse.y - mouse.startY < 0) ? mouse.y : mouse.startY;
 
-        mouseIsOnDoodle = true;
-      }
+      //     tmpAnnotatedObject.dom.style.width = tmpAnnotatedObject.width + 'px';
+      //     tmpAnnotatedObject.dom.style.height = tmpAnnotatedObject.height + 'px';
+      //     tmpAnnotatedObject.dom.style.left = tmpAnnotatedObject.x + 'px';
+      //     tmpAnnotatedObject.dom.style.top = tmpAnnotatedObject.y + 'px';
+      //   }
+      // }
 
-      doodleEgo.addEventListener("mouseenter", function() {mouseIsOnDoodle = true;}); 
-      doodleEgo.addEventListener("mouseout", function() {mouseIsOnDoodle = false;}); 
-      doodleEgo.onclick = function (e) {
-        if (doodleEgo.style.cursor != 'crosshair') {
-          return;
-        }
+      // doodleEgo.onclick = function (e) {
+      //   if (doodleEgo.style.cursor != 'crosshair') {
+      //     return;
+      //   }
 
-        if (tmpAnnotatedObject != null) {
-          if(annotatedObjectsTracker.currentlyAnnotating != null){
-            let annotatedObject = annotatedObjectsTracker.currentlyAnnotating;
-            if(annotatedObject.dom !== null){
-              doodleEgo.removeChild(annotatedObject.dom);
-            }
-            annotatedObject.dom = tmpAnnotatedObject.dom;
-            let bbox = new BoundingBox(tmpAnnotatedObject.x, tmpAnnotatedObject.y, tmpAnnotatedObject.width, tmpAnnotatedObject.height);
-            annotatedObject.add(new AnnotatedFrame(player.currentFrame, bbox, true));
+      //   if (tmpAnnotatedObject != null) {
+      //     if(annotationHandler.currentlyAnnotating != null){
+      //       let annotatedObject = annotationHandler.currentlyAnnotating;
+      //       if(annotatedObject.doms['ego'] !== undefined){
+      //         doodleEgo.removeChild(annotatedObject.doms['ego']);
+      //       }
+      //       annotatedObject.doms['ego'] = tmpAnnotatedObject.dom;
+      //       let bbox = new BoundingBox(tmpAnnotatedObject.x, tmpAnnotatedObject.y, tmpAnnotatedObject.width, tmpAnnotatedObject.height);
+      //       annotatedObject.bboxs['ego'] = bbox;
 
-            interactify(
-              annotatedObject.dom,
-              (x, y, width, height) => {
-                let bbox = new BoundingBox(x, y, width, height);
-                annotatedObject.add(new AnnotatedFrame(player.currentFrame, bbox, true));
-              }
-            );
-          }
-          tmpAnnotatedObject = null;
-          doodleEgo.style.cursor = 'default';
-        } else {
-          mouse.startX = mouse.x;
-          mouse.startY = mouse.y;
+      //       interactify(
+      //         annotatedObject.dom,
+      //         (x, y, width, height) => {
+      //           let bbox = new BoundingBox(x, y, width, height);
+      //           annotatedObject.bboxs['ego'] = bbox;
+      //         }
+      //       );
+      //     }
+      //     tmpAnnotatedObject = null;
+      //     doodleEgo.style.cursor = 'default';
+      //   } else {
+      //     mouse.startX = mouse.x;
+      //     mouse.startY = mouse.y;
 
-          let dom = newBboxElement(doodleEgo);
-          dom.style.left = mouse.x + 'px';
-          dom.style.top = mouse.y + 'px';
-          if(annotatedObjectsTracker.currentlyAnnotating.id == 'target'){
-            dom.style.border = '2px solid rgba(0, 255, 0, 1)';
-          }
-          else{
-            dom.style.border = '2px solid rgba(255, 0, 0, 1)';
-          }
-          tmpAnnotatedObject = { dom: dom };
-        }
-      }
+      //     let dom = newBboxElement(doodleEgo);
+      //     dom.style.left = mouse.x + 'px';
+      //     dom.style.top = mouse.y + 'px';
+      //     if(annotationHandler.currentlyAnnotating.id == 'target'){
+      //       dom.style.border = '2px solid rgba(0, 255, 0, 1)';
+      //     }
+      //     else{
+      //       dom.style.border = '2px solid rgba(255, 0, 0, 1)';
+      //     }
+      //     tmpAnnotatedObject = { dom: dom };
+      //   }
+      // }
 
       // Keyboard shortcuts
       window.onkeydown = function(e) {
         let preventDefault = true;
 
           if (e.keyCode === 27) { // escape
-          if (tmpAnnotatedObject != null) {
-            doodleEgo.removeChild(tmpAnnotatedObject.dom);
-            tmpAnnotatedObject = null;
+          if (tmpAnnotatedObject['ego'] != null) {
+            doodleEgo.removeChild(tmpAnnotatedObject['ego'].dom);
+            tmpAnnotatedObject['ego'] = null;
           }
-          annotatedObjectsTracker.currentlyAnnotating = null;
+          if (tmpAnnotatedObject['exo'] != null) {
+            doodleExo.removeChild(tmpAnnotatedObject['exo'].dom);
+            tmpAnnotatedObject['exo'] = null;
+          }
+          annotationHandler.currentlyAnnotating = null;
           doodleEgo.style.cursor = 'default';
+          doodleExo.style.cursor = 'default';
         } else {
           preventDefault = false;
         }

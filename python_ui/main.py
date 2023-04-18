@@ -1,11 +1,12 @@
 import os
+from PIL import Image
 from flask import Flask, render_template, jsonify, abort
 
 app = Flask(__name__)
 
 def calculate_mapping():
     mapping = {}
-    data_folder = "../data/"
+    data_folder = "static/data/"
     subject_foldernames = os.listdir(data_folder)
     for subject_foldername in subject_foldernames:
         if not subject_foldername.startswith('subject_') or not subject_foldername[8:].isdecimal():
@@ -38,11 +39,21 @@ def calculate_mapping():
                 exo_file = "exo_{}.jpg".format(img_idx)
                 audio_file = os.path.join(interaction_folder, "audio.mp3")
                 while ego_file in img_files and exo_file in img_files:
+                    full_ego_file = os.path.join(img_folder, ego_file)
+                    full_exo_file = os.path.join(img_folder, exo_file)
+                    im = Image.open(full_ego_file)
+                    ego_width, ego_height = im.size
+                    im = Image.open(full_exo_file)
+                    exo_width, exo_height = im.size
                     frames.append({
                         'interaction': interaction, 
                         'img_idx': img_idx,
-                        'ego_filepath': os.path.join(img_folder, ego_file),
-                        'exo_filepath': os.path.join(img_folder, exo_file),
+                        'ego_filepath': full_ego_file,
+                        'ego_width': ego_width,
+                        'ego_height': ego_height,
+                        'exo_filepath': full_exo_file,
+                        'exo_width': exo_width,
+                        'exo_height': exo_height,
                         'audio_filepath': audio_file
                     })
                     img_idx += 1
