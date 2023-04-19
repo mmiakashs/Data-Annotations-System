@@ -10,7 +10,7 @@ import whisper
 MODEL_NAME = "base.en"
 DATA_FOLDER = "static/data/"
 AUDIO_FILENAME = "audio.mp3"
-OUTPUT_JSON_FILENAME = "../transcriptions.json"
+OUTPUT_JSON_FILENAME = "transcriptions.json"
 USING_CUDA = False
 
 transcription_mapping = {}

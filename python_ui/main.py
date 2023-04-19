@@ -1,10 +1,10 @@
 import os
 import json
 from PIL import Image
-from flask import Flask, render_template, jsonify, abort, request, send_file
+from flask import Flask, render_template, jsonify, abort, request
 
 DATA_FOLDER = "static/data/"
-TRANSCRIPTION_FILE = "../transcriptions.json"
+TRANSCRIPTION_FILE = "transcriptions.json"
 OUTPUT_FOLDER = "annotations/"
 
 app = Flask(__name__)
