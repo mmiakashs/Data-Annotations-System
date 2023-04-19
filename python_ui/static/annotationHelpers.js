@@ -28,8 +28,41 @@ class AnnotatedObject {
     this.color = obj.color;
     this.shape = obj.shape;
     this.location = obj.location;
-    this.doms = obj.doms;
     this.bboxs = obj.bboxs;
+    this.doms = {};
+
+    for(let view in this.bboxs){
+      let dom = undefined;
+      let bbox = this.bboxs[view];
+      if(view == 'ego'){
+        dom = newBboxElement(doodleEgo);
+      }
+      else if(view == 'exo'){
+        dom = newBboxElement(doodleExo);
+      }
+
+      if(this.id == 'target'){
+        dom.style.border = '2px solid rgba(0, 255, 0, 1)';
+      }
+      else{
+        dom.style.border = '2px solid rgba(255, 0, 0, 1)';
+      }
+
+      this.doms[view] = dom;
+
+      dom.style.width = bbox.width + 'px';
+      dom.style.height = bbox.height + 'px';
+      dom.style.left = bbox.x + 'px';
+      dom.style.top = bbox.y + 'px';
+
+      interactify(
+        dom,
+        (x, y, width, height) => {
+          let bbox = new BoundingBox(x, y, width, height);
+          this.bboxs[view] = bbox;
+        }
+      );  
+    }
 
     addAnnotatedObjectControls(annotationHandler, this);
   }
@@ -47,7 +80,6 @@ class AnnotationHandler {
   }
 
   saveObjectsToAnnotationHistory() {
-    console.log("Saving");
     let key = this.getCurrentAnnotationKey();
     this.annotationHistory[key] = [];
     for (let i = 0; i < this.annotatedObjects.length; i++) {
@@ -57,29 +89,26 @@ class AnnotationHandler {
   }
 
   loadSavedAnnotations() {
-    console.log("Loading");
     let key = this.getCurrentAnnotationKey();
     if(key in this.annotationHistory){
+      this.deleteAnnotatedObject('target');
+      this.deleteAnnotatedObject('reference');
       for(let savedObj of this.annotationHistory[key]){
-        let currentObj = this.getAnnotatedObjectByID(savedObj.id);
-        console.log(currentObj);
-        if(currentObj !== null){
-          currentObj.loadDataFromAnnotatedObject(savedObj);
+        if(savedObj.id == 'reference'){
+          referenceObjectCheckbox.checked = true;
         }
-        else{
-          this.annotatedObjects.push(this.annotationHistory[key][savedObj]);
-        }
+      }
+
+      for(let savedObj of this.annotationHistory[key]){
+        let newObj = this.createAnnotatedObject(savedObj.id);
+        newObj.loadDataFromAnnotatedObject(savedObj);
       }
     }
   }
 
   resetAllAnnotatedObjects() {
-    for (let i = 0; i < this.annotatedObjects.length; i++) {
-      let annotatedObject = this.annotatedObjects[i];
-      annotatedObject.controls.remove();
-      for(let j = 0; j < annotatedObject.doms.length; j++){
-        $(annotatedObject.doms[j]).remove();
-      }
+    for (let i = this.annotatedObjects.length - 1; i >= 0; i--) {
+      this.deleteAnnotatedObject(this.annotatedObjects[i].id);
     }
     this.annotatedObjects = [];
   
@@ -102,6 +131,7 @@ class AnnotationHandler {
     annotatedObject.doms = {};
     this.annotatedObjects.push(annotatedObject);
     addAnnotatedObjectControls(this, annotatedObject);
+    return annotatedObject;
   }
   
   deleteAnnotatedObject(id) {
