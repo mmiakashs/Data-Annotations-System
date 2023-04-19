@@ -33,11 +33,11 @@ class DataHandler {
 
         // Set the ego image
         let displayScale = getDisplayScale(frame.ego_height);
-        drawImage(frame.ego_filepath, displayScale * frame.ego_width, config.frameDisplayHeight, doodleEgo, canvasEgo, ctxEgo);
+        drawImage(frame.ego_filepath, frame.ego_width * displayScale, frame.ego_height * displayScale, doodleEgo, canvasEgo, ctxEgo);
         
         // Set the exo image
         displayScale = getDisplayScale(frame.exo_height);
-        drawImage(frame.exo_filepath, displayScale * frame.exo_width, config.frameDisplayHeight, doodleExo, canvasExo, ctxExo);
+        drawImage(frame.exo_filepath, frame.exo_width * displayScale, frame.exo_height * displayScale, doodleExo, canvasExo, ctxExo);
 
         frameInfoLabel.innerHTML = "<b>Currently Annotating Frame " + (this.currentFrame + 1) + " / " + this.numFrames + "</b>";
         transcriptionInput.value = frame.transcription;
@@ -64,6 +64,10 @@ class DataHandler {
             }
         }
         return true;
+    }
+
+    getFrame(idx) {
+        return this.frames[idx];
     }
     
     getCurrentFrame() {

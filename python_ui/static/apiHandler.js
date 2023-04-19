@@ -71,7 +71,34 @@ function loadSessionAPIData(){
             }
         });    
     }
+}
 
+function saveJSONData(data) {
+    let subject = dataHandler.subject;
+    let session = dataHandler.session;
+    let url = "/save_session/" + subject + "/" + session;
+    data = JSON.stringify(data);
+    $.ajax({
+        type: "POST",
+        url,
+        data,
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        success: function( result ) {
+            let date = new Date().toString();
+            generateJSONSuccessText.textContent = "Successfully saved annotation JSON for Subject " + subject + ", Session " + session + " at " + date;
+            generateJSONSuccessText.style.color = "green";
+            generateJSONSuccessText.hidden = false;
+            console.log("Save complete!");
+        }
+    }).error(function( result ){
+        let date = new Date().toString();
+        generateJSONSuccessText.textContent = "Failed to save annotation JSON for Subject " + subject + ", Session " + session + " at " + date;
+        generateJSONSuccessText.style.color = "red";
+        generateJSONSuccessText.hidden = false;
+    console.log("Something went wrong :(");
+    });
 }
 
 function initAPIHandler(){

@@ -168,8 +168,10 @@
         </div>
       </li>
       <li>
-        <p><input type="button" id="generateJSON" value="Generate" disabled="true" /> the JSON annotations file.</p>
+        <p><input type="button" id="generateJSON" value="Generate" disabled="true" /> the JSON file for the annotations.</p>
+        <p id="generateJSONSuccessText" hidden=true></p>
       </li>
+            
     </ol>
 
     <script type="text/javascript" src="{{ url_for('static', filename= 'dist/compatibility.js') }}"></script>
@@ -201,7 +203,6 @@
 
         // Scaling frames
         frameDisplayHeight: 500,
-        // frameDisplayWidth: 800,
 
         // Custom folder structure
         interactionFolderName: 'interaction_',
@@ -225,6 +226,7 @@
       let pauseButton = document.querySelector('#pause');
       let speedInput = document.querySelector('#speed');
       let generateJSONButton = document.querySelector('#generateJSON');
+      let generateJSONSuccessText = document.querySelector("#generateJSONSuccessText");
       let referenceObjectCheckbox = document.querySelector("#referenceObjectPresent");
       let referenceObjectCheckboxDiv = document.querySelector("#referenceObjectCheckboxDiv");
       let spatialRelationshipDiv = document.querySelector('#spatialRelationshipDiv');
@@ -239,7 +241,6 @@
       let prevFrameButton = document.querySelector("#prevFrame");
       let nextFrameButton = document.querySelector("#nextFrame");
 
-      // jsonFile.addEventListener('change', importJSON, false);
       generateJSONButton.addEventListener('click', generateJSON, false);
 
       let dataHandler = new DataHandler();

@@ -75,34 +75,44 @@ class AnnotationHandler {
     this.currentlyAnnotating = null;
   }
 
-  getCurrentAnnotationKey(){
-    return dataHandler.subject + ";" + dataHandler.session + ";" + dataHandler.currentFrame;
+  getAnnotationHistoryKey(subject, session, frameNum){
+    return subject + ";" + session + ";" + frameNum;
   }
 
   saveObjectsToAnnotationHistory() {
-    let key = this.getCurrentAnnotationKey();
-    this.annotationHistory[key] = [];
+    let key = this.getAnnotationHistoryKey(dataHandler.subject, dataHandler.session, dataHandler.currentFrame);
+    this.annotationHistory[key] = {};
+    this.annotationHistory[key].transcription = transcriptionInput.value;
+    this.annotationHistory[key].perspective = perspectiveInput.value;
+    this.annotationHistory[key].spatial_relationship = spatialRelationshipInput.value;
+    this.annotationHistory[key].objects = []
+
     for (let i = 0; i < this.annotatedObjects.length; i++) {
       let annotatedObject = this.annotatedObjects[i];
-      this.annotationHistory[key].push(annotatedObject);
+      this.annotationHistory[key].objects.push(annotatedObject);
     }
   }
 
   loadSavedAnnotations() {
-    let key = this.getCurrentAnnotationKey();
+    let key = this.getAnnotationHistoryKey(dataHandler.subject, dataHandler.session, dataHandler.currentFrame);
     if(key in this.annotationHistory){
       this.deleteAnnotatedObject('target');
       this.deleteAnnotatedObject('reference');
-      for(let savedObj of this.annotationHistory[key]){
+      referenceObjectCheckbox.checked = false;
+      for(let savedObj of this.annotationHistory[key].objects){
         if(savedObj.id == 'reference'){
           referenceObjectCheckbox.checked = true;
         }
       }
 
-      for(let savedObj of this.annotationHistory[key]){
+      for(let savedObj of this.annotationHistory[key].objects){
         let newObj = this.createAnnotatedObject(savedObj.id);
         newObj.loadDataFromAnnotatedObject(savedObj);
       }
+
+      transcriptionInput.value = this.annotationHistory[key].transcription;
+      perspectiveInput.value = this.annotationHistory[key].perspective;
+      spatialRelationshipInput.value = this.annotationHistory[key].spatial_relationship;
     }
   }
 
@@ -275,148 +285,68 @@ function setupDoodle(doodle, doodleView){
 JSON-related fuctions
 */
 
-function annotatedObjectToJSON(annotatedObject){
-  let output = {};
-  output.id = annotatedObject.id;
-  output.label = annotatedObject.label;
-  output.color = annotatedObject.color;
-  output.shape = annotatedObject.shape;
-  output.location = annotatedObject.location;
-  output.annotations = [];
+function annotatedObjectToJSON(annotatedObject, frameNum){
+  let description = {};
+  description.label = annotatedObject.label;
+  description.color = annotatedObject.color;
+  description.shape = annotatedObject.shape;
+  description.location = annotatedObject.location;
+  description.bboxs = annotatedObject.bboxs;
 
-  let totalFrames = framesManager.frames.totalFrames();
-  for (let frameNumber = 0; frameNumber < totalFrames; frameNumber++) {
-    let annotatedFrame = annotatedObject.get(frameNumber);
-    if (annotatedFrame == null) {
-      window.alert('Bounding box not found for ' + output.id + ' in frame ' + toString(frameNumber) + '. Play the video in full before downloading the XML so that bounding box data is available for all frames.');
-      return null;
-    }
+  if(description.label === undefined){
+    description.label = null;
+  }
+  if(description.color === undefined){
+    description.color = null;
+  }
+  if(description.shape === undefined){
+    description.shape = null;
+  }
+  if(description.location === undefined){
+    description.location = null;
+  }
+  if(description.bboxs === undefined){
+    description.bboxs = {};
+  }
+  else{
+    // Resize bbox values based on the previously calculated displayScale.
+    for(let view in description.bboxs){
+      let displayScale = 1;
+      if(view == 'ego'){
+        displayScale = getDisplayScale(dataHandler.getFrame(frameNum).ego_height);
+      }
+      else if(view == 'exo'){
+        displayScale = getDisplayScale(dataHandler.getFrame(frameNum).exo_height);
+      }
+      for(let bbox_key in description.bboxs[view]){
+        description.bboxs[view][bbox_key] = description.bboxs[view][bbox_key] / displayScale;
+      }
 
-    let bbox = annotatedFrame.bbox;
-    if (bbox != null) {
-      let isGroundTruth = annotatedFrame.isGroundTruth ? 1 : 0;
-      let scale = framesManager.displayScale;
-      let annotation = {t: frameNumber, x: bbox.x / scale, y: bbox.y / scale, width: bbox.width / scale, height: bbox.height / scale, l: isGroundTruth};
-      output.annotations.push(annotation);
     }
   }
-  return output;
+  return description;
 }
 
 function generateJSON() {
-  let targetObject = annotatedObjectsTracker.getAnnotatedObjectByID('target');
-  let referenceObject = annotatedObjectsTracker.getAnnotatedObjectByID('reference');
   let output = {};
-  output.target = annotatedObjectToJSON(targetObject);
-  output.reference = annotatedObjectToJSON(referenceObject);
-  // if(referenceObjectCheckbox.checked){
-  //   output.reference = annotatedObjectToJSON(referenceObject);
-  // }
-  // if(output.target === null || output.reference === null){
-  //   return;
-  // }
-  output.transcription = transcriptionInput.value;
-  output.perspective = perspectiveInput.value;
-  output.spatial_relationship = spatialRelationshipInput.value;
-  let outputJSON = JSON.stringify(output);
-
-  let writeStream = streamSaver.createWriteStream('output.json').getWriter();
-  let encoder = new TextEncoder();
-  writeStream.write(encoder.encode(outputJSON));
-  writeStream.close();
-}
-
-function importAnnotatedObjectFromJSON(objectJSON){
-  let id = objectJSON.id;
-  let annotatedObject = annotatedObjectsTracker.getAnnotatedObjectByID(id);
-  if(annotatedObject === null){
-    throw new Error("Object with unknown ID found: " + id + ". Annotated Object ID must be either 'target' or 'reference'");
-  }
-
-  annotatedObject.label = objectJSON.label;
-  annotatedObject.color = objectJSON.color;
-  annotatedObject.shape = objectJSON.shape;
-  annotatedObject.location = objectJSON.location;
-  annotatedObject.dom = newBboxElement();
-  if(id == 'target'){
-    annotatedObject.dom.style.border = '2px solid rgba(0, 255, 0, 1)';
-  }
-  else{
-    annotatedObject.dom.style.border = '2px solid rgba(255, 0, 0, 1)';
-  }
-
-  interactify(
-    annotatedObject.dom,
-    (x, y, width, height) => {
-      let scale = framesManager.displayScale;
-      let bbox = new BoundingBox(x * scale, y * scale, width * scale, height * scale);
-      annotatedObject.add(new AnnotatedFrame(player.currentFrame, bbox, true));
-    }
-  );
-
-  let lastFrame = -1;
-  let frames = objectJSON.annotations;
-  for (let i = 0; i < frames.length; i++) {
-    let frame = frames[i];
-    let frameNumber = parseInt(frame.t);
-    let x = parseInt(frame.x);
-    let y = parseInt(frame.y);
-    let w = parseInt(frame.width);
-    let h = parseInt(frame.height);
-    let isGroundTruth = parseInt(frame.l) == 1;
-
-    if (lastFrame + 1 != frameNumber) {
-      let annotatedFrame = new AnnotatedFrame(lastFrame + 1, null, true);
-      annotatedObject.add(annotatedFrame);
-    }
-
-    let bbox = new BoundingBox(x, y, w, h);
-    let annotatedFrame = new AnnotatedFrame(frameNumber, bbox, isGroundTruth);
-    annotatedObject.add(annotatedFrame);
-
-    lastFrame = frameNumber;
-  }
-
-  if (lastFrame + 1 < framesManager.frames.totalFrames()) {
-    let annotatedFrame = new AnnotatedFrame(lastFrame + 1, null, true);
-    annotatedObject.add(annotatedFrame);
-  }
-  addAnnotatedObjectControls(annotatedObject);
-
-}
-
-function importJSON() {
-  if (this.files.length != 1) {
-    return;
-  }
-
-  var reader = new FileReader();
-  reader.onload = (e) => {
-    if (e.target.readyState != 2) {
+  annotationHandler.saveObjectsToAnnotationHistory();
+  for(let i = 0; i < dataHandler.numFrames; i++){
+    let key = annotationHandler.getAnnotationHistoryKey(dataHandler.subject, dataHandler.session, i);
+    if(!(key in annotationHandler.annotationHistory)){
+      alert("You must visit every frame before attempting to save data, but you haven't visited frame " + (i + 1) + " yet!");
       return;
     }
-
-    if (e.target.error) {
-      throw 'file reader error';
+    output[i] = {objects: {}};
+    for(let annotatedObject of annotationHandler.annotationHistory[key].objects){
+      output[i].objects[annotatedObject.id] = annotatedObjectToJSON(annotatedObject, i);
     }
 
-    let json = JSON.parse(e.target.result);
-    let targetObject = json.target;
-    importAnnotatedObjectFromJSON(targetObject);
-    transcriptionInput.value = json.transcription;
-    perspectiveInput.value = json.perspective;
-    spatialRelationshipInput.value = json.spatial_relationship;    
-
-    deleteReferenceObject();
-    if('reference' in json){
-      createReferenceObject();
-      let referenceObject = json.reference;
-      importAnnotatedObjectFromJSON(referenceObject);
-    }
-
-    player.drawFrame(player.currentFrame);
-  };
-  reader.readAsText(this.files[0]);
+    output[i].transcription = annotationHandler.annotationHistory[key].transcription;
+    output[i].perspective = annotationHandler.annotationHistory[key].perspective;
+    output[i].spatial_relationship = annotationHandler.annotationHistory[key].spatial_relationship;
+  }
+  console.log(output);
+  saveJSONData(output);
 }
 
 function addAnnotatedObjectControls(handler, annotatedObject) {
@@ -499,9 +429,6 @@ function addAnnotatedObjectControls(handler, annotatedObject) {
 
   let annotation_button = $('<button>Draw Annotation</button/>');
   annotation_button.on('click', () => handler.annotateObject(annotatedObject.id));
-  annotation_button.css({
-    'padding-top': '5px'
-  });
 
   div.css({
     'border': '1px solid black',

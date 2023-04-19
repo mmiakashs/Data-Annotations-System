@@ -1,10 +1,11 @@
 import os
 import json
 from PIL import Image
-from flask import Flask, render_template, jsonify, abort
+from flask import Flask, render_template, jsonify, abort, request, send_file
 
 DATA_FOLDER = "static/data/"
 TRANSCRIPTION_FILE = "../transcriptions.json"
+OUTPUT_FOLDER = "annotations/"
 
 app = Flask(__name__)
 
@@ -123,6 +124,22 @@ def get_frame(subject, session, frame_num):
     frame_data = session_data[int(frame_num)]
 
     return frame_data
+
+@app.route("/save_session/<subject>/<session>", methods=['POST'])
+def save_session(subject, session):
+    data = json.loads(request.data, strict=False)
+
+    # Convert data from dictionary to array
+    output = []
+    for frame_num in sorted(data.keys()):
+        output.append(data[frame_num])
+
+    filename = "subject_{}_session_{}.json".format(subject, session)
+    filepath = os.path.join(OUTPUT_FOLDER, filename)
+    if not os.path.exists(OUTPUT_FOLDER):
+        os.mkdir(OUTPUT_FOLDER)
+    json.dump(output, open(filepath, "w+"))
+    return {}
 
 
 if __name__ == "__main__":
