@@ -4,16 +4,14 @@ from PIL import Image
 from flask import Flask, render_template, jsonify, abort, request
 
 DATA_FOLDER = "static/data/"
-TRANSCRIPTION_FILE = "transcriptions.json"
+TRANSCRIPTION_FILE = "transcription.txt"
+AUDIO_FILE = "audio.mp3"
 OUTPUT_FOLDER = "annotations/"
 
 app = Flask(__name__)
 
 def calculate_mapping():
     mapping = {}
-    transcriptions = {}
-    if TRANSCRIPTION_FILE is not None:
-        transcriptions = json.load(open(TRANSCRIPTION_FILE))
 
     subject_foldernames = os.listdir(DATA_FOLDER)
     for subject_foldername in subject_foldernames:
@@ -45,7 +43,12 @@ def calculate_mapping():
                 img_idx = 1
                 ego_file = "ego_{}.jpg".format(img_idx)
                 exo_file = "exo_{}.jpg".format(img_idx)
-                audio_file = os.path.join(interaction_folder, "audio.mp3")
+                audio_file = os.path.join(interaction_folder, AUDIO_FILE)
+
+                transcription_file = open(os.path.join(interaction_folder, TRANSCRIPTION_FILE))
+                transcription = transcription_file.read().strip()
+                transcription_file.close()
+
                 while ego_file in img_files and exo_file in img_files:
                     full_ego_file = os.path.join(img_folder, ego_file)
                     full_exo_file = os.path.join(img_folder, exo_file)
@@ -53,11 +56,6 @@ def calculate_mapping():
                     ego_width, ego_height = im.size
                     im = Image.open(full_exo_file)
                     exo_width, exo_height = im.size
-
-                    transcription = ""
-                    subject_str, session_str, interaction_str = str(subject), str(session), str(interaction)
-                    if subject_str in transcriptions and session_str in transcriptions[subject_str] and interaction_str in transcriptions[subject_str][session_str]:
-                        transcription = transcriptions[subject_str][session_str][interaction_str]
 
                     frames.append({
                         'interaction': interaction, 

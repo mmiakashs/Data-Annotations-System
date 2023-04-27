@@ -30,35 +30,27 @@ pip3 install Flask # Install Flask
 
 The tool is split into two steps: **preprocessing** and **annotation.**
 
-### Preprocessing
+**UPDATE:** The preprocessing generation of the transcriptions should already be part of the data folder, and there should be a transcription file in each *interaction/* folder. Thus, the `generate_transcriptions.py` should no longer be run, as the Python script no longer uses the `transcriptions.json` file.
 
-The preprocessing script is used to extract an audio transcription of each interaction. This transcription will later be editable.
-
-For the preprocessing, you should use the `generate_transcriptions.py` script in the repo. At the top of the script, there are some parameters that you can change. These parameters are:
-- **MODEL_NAME:** The whisper [model](https://github.com/openai/whisper) to use to generate the audio transcription. By default this is `base.en`.
-- **DATA_FOLDER:** The root directory in which every subject's subfolder is located.
-- **AUDIO_FILENAME:** The path to the audio file in each interaction folder.
-- **OUTPUT_JSON_FILENAME:** The filename of the JSON file to which the audio transcriptions are saved. **Make sure the same file is specified in the parameters for *main.py***.
-- **USING_CUDA:** Whether or not the whisper model is using the CUDA version or the CPU version of PyTorch.
-
-### Annotation
+## Annotation
 
 The annotation UI allows you to draw bounding boxes around the target and reference objects, as well as label various characteristics such as their name, shape, color, and location. The UI also enables you to edit the auto-generated audio transcription. The UI has been tested to work on Chrome and Firefox.
 
 The annotation UI consists of a Python backend, located in `main.py`, and an HTML / JavaScript frontend, located in `templates/` and `static/`.
 
-#### Backend
+### Backend
 
 The backend consists of endpoints that make it easier to interact with the filesystem and supply data to the UI. The backend uses Flask to host the system, and has a few parameters:
 - **DATA_FOLDER:** The root directory in which every subject's subfolder is located. Note that for now, this directory has to be in the `static/` folder to allow the UI to access the images.
-- **TRANSCRIPTION_FILE:** The filename of the JSON file to which the audio transcriptions are saved.
+- **AUDIO_FILE:** The filename of the speaker's audio file that's located in each interaction.
+- **TRANSCRIPTION_FILE:** The filename of the transcription text file that's located in each interaction.
 - **OUTPUT_FOLDER:** Where to output the annotation JSONs after the user finishes annotating each session.
 
 To start up the backend, simply run `python3 main.py`.
 
 By default, the backend should run at *http://localhost:5000/*, which you can then open up on your browser to view the Frontend UI.
 
-#### Frontend
+### Frontend
 
 Annotation is separated by sessions. To select a session, first choose a Subject, and then choose a corresponding session in the dropdowns. Then, hit **Load data** to load in the frames for that session.
 
